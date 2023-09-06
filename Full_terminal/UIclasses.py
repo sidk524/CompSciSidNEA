@@ -196,13 +196,10 @@ class UI():
         
         base_point_1 = [(x * self.cell_width)  + self.maze_width*0.025, (y * (self.cell_height))  + self.maze_height*0.025]
         base_point_2 = [base_point_1[0]+self.cell_side_length, (y * (self.cell_height))  + self.maze_height*0.025]
-        if x % 2 == 1:
+        if not(x % 2 == 1 and y%2 == 1) and (x % 2 == 1 or y%2 == 1):
             base_point_1[1] += self.cell_height
             base_point_2[1] += self.cell_height
-        if y % 2 == 1:
-            
-            base_point_1[1] += self.cell_height
-            base_point_2[1] += self.cell_height
+      
 
         return base_point_1, base_point_2
 
@@ -225,20 +222,8 @@ class UI():
     def draw_triangle_connection(self, cell1, cell2, size):
         cell1_base_point_1, cell1_base_point_2 = self.get_triangle_base_points(cell1.id[0], cell1.id[1])
         cell2_base_point_1, cell2_base_point_2 = self.get_triangle_base_points(cell2.id[0], cell2.id[1])
-        
-        # pg.draw.circle(self.screen, self.GREEN, (cell1_base_point_1[0], cell1_base_point_1[1]), 5)
-        # pg.draw.circle(self.screen, self.GREEN, (cell1_base_point_2[0], cell1_base_point_2[1]), 5)
-        # pg.draw.circle(self.screen, self.RED, (cell2_base_point_1[0], cell2_base_point_1[1]), 5)
-        # pg.draw.circle(self.screen, self.RED, (cell2_base_point_2[0], cell2_base_point_2[1]), 5)
-        # pg.display.flip()
-        # time.sleep(1)
-
-        # pg.draw.circle(self.screen, self.WHITE, (cell1_base_point_1[0], cell1_base_point_1[1]), 5)
-        # pg.draw.circle(self.screen, self.WHITE, (cell1_base_point_2[0], cell1_base_point_2[1]), 5)
-        # pg.draw.circle(self.screen, self.WHITE, (cell2_base_point_1[0], cell2_base_point_1[1]), 5)
-        # pg.draw.circle(self.screen, self.WHITE, (cell2_base_point_2[0], cell2_base_point_2[1]), 5)
+     
         if list(map(int, cell1_base_point_1)) == list(map(int, cell2_base_point_1)):
-            print("Here")
             line_start = cell1_base_point_1
             line_end = cell1_base_point_2
         elif self.distance(cell1_base_point_1[0], cell1_base_point_1[1], cell2_base_point_2[0], cell2_base_point_2[0] ) < self.distance(cell1_base_point_2[0], cell1_base_point_2[1], cell2_base_point_1[0], cell2_base_point_1[0] ):
@@ -247,7 +232,7 @@ class UI():
         else:
             line_start = cell1_base_point_2
             line_end = cell2_base_point_1
-        #pg.draw.line(self.screen, self.BLUE, line_start, line_end, 2)
+        pg.draw.line(self.screen, self.BLUE, line_start, line_end, 2)
         
        
        
@@ -303,13 +288,11 @@ class UI():
             pg.draw.circle(self.screen, self.GREEN, (self.circle_x, self.circle_y), self.cell_width/4)
             self.token_visited_cells_coords.append((self.circle_x - self.cell_width*0.1, self.circle_y - self.cell_height*0.1))
             self.highlightVisitedCells()
-
         elif self.maze.type == "triangular":
             self.points = []
-            self.cell_width = ((self.maze_width*0.8) / (self.maze.size+2))
-            self.cell_side_length = self.cell_width * 2
-            self.cell_height = math.sqrt((self.cell_side_length**2) - ((self.cell_side_length/2)**2))
-
+            self.cell_height = ((self.maze_height*0.95) / (self.maze.size))
+            self.cell_side_length = self.cell_height / math.sin(math.pi/3)
+            self.cell_width = self.cell_side_length / 2
             for y in range(self.maze.size):
                 for x in range(len(self.maze.grid[y])):
                     self.flipped = False
@@ -319,25 +302,14 @@ class UI():
                         self.flipped = True
                     if y%2 == 1:
                         self.flipped = not self.flipped
-                    # if y%2 == 1:
-                    #     if x == 0:
-                    #         self.drawTriangle((self.base_1[0] - self.cell_side_length/2, self.base_1[1]+self.cell_height), (self.base_2[0] - self.cell_side_length/2, self.base_2[1] + self.cell_height), self.cell_side_length, True)
-                  
-                    # else:
-                    #     if x == self.maze.size - 1:
-                    #         if (self.maze.size-1)%2 == 1: #not flipped 
-                    #             self.drawTriangle((self.base_1[0]+self.cell_side_length/2, self.base_1[1]-self.cell_height), (self.base_2[0]+self.cell_side_length/2, self.base_2[1]-self.cell_height), self.cell_side_length, False)
-                    #         else:
-                    #             self.drawTriangle((self.base_1[0]+self.cell_width, self.base_1[1]+self.cell_height), (self.base_2[0]+self.cell_width, self.base_2[1]+self.cell_height), self.cell_side_length, True)
-                    
+
                     self.drawTriangle(self.base_1, self.base_2, self.cell_side_length, self.flipped)
-                    
+              
                     self.cell_connections = cell.connections
                     for c in self.cell_connections:
                          self.draw_triangle_connection(self.maze.grid[y][x], c, self.cell_side_length)
 
     def pygameLoop(self):
-        pg.init()
         self.screen = pg.display.set_mode((self.width, self.height))
         self.running = True
         self.screen.fill(self.WHITE)
@@ -429,7 +401,10 @@ class TerminalUI(UI):
 
     def __init__(self):
         self.maze = None
-        self.width, self.height = 1200, 1000
+        pg.init()
+        self.infoObject = pg.display.Info()
+
+        self.width, self.height = self.infoObject.current_w*0.8, self.infoObject.current_h*0.8
 
         self.maze_width, self.maze_height = 2*(self.width//3), self.height
         self.side_width, self.side_height = self.width - self.maze_width, self.height

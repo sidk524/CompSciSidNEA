@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 import random
 import pygame as pg
 import math
+
+# Initilise a flipped dictionary during initialisation of the maze
+
+
 class Cell:
     def __init__(self,  maxConnections, ID):
         self.connections = []
@@ -76,8 +80,10 @@ class Maze:
                         self.grid[y].append(Cell(6, (x,y)))
         elif self.type == "triangular":
             self.grid = dict()
+            self.flipped_grid = dict()
             for y in range(self.size):
                 self.grid[y] = []
+                self.flipped_grid[y] = []
                 for x in range(self.size):
                     self.grid[y].append(Cell(3, (x,y)))
         
@@ -446,12 +452,12 @@ class sidewinder(genAlgorithm):
             self.current_run = []
             for y in range(self.maze.size):
                 self.current_run = []
-                for x in range(self.maze.size):
+                for x in range(len(self.maze.grid[y])):
                     cell = self.maze.grid[y][x]
                     self.current_run.append(cell)
                     end_run = False
                     connect_left = False
-                    if x == self.maze.size - 1:
+                    if x == len(self.maze.grid[y]) - 1:
                         end_run = True
                     else:
                         decision = random.randint(0, 1)
@@ -460,16 +466,15 @@ class sidewinder(genAlgorithm):
                         else:
                             connect_left = True
                     if end_run and y != 0:
-                        chosen_cell_index = random.randint(0, len(self.current_run)-1)
-                    
-                        if self.current_run[chosen_cell_index].id[0] % 2 == 0 and self.current_run[chosen_cell_index].id[0] != 0:
-                            chosen_cell_index -= 1
-                        self.current_run[chosen_cell_index].addConnection(self.maze.grid[y-1][self.current_run[chosen_cell_index].id[0]])
+                        self.x, self.y = random.choice(self.current_run).id
+                        if ((self.x) % 2 == 0 and (self.y)%2 == 0) or ((self.x) % 2 == 1 and (self.y)%2 == 1):
+                            self.x -= 1
+                        self.maze.grid[self.y][self.x].addConnection(self.maze.grid[self.y-1][self.x])
                         self.current_run = []
-                    elif (connect_left and x < self.maze.size - 1) or (y == 0 and x < self.maze.size - 1):
+                    elif (connect_left and x < len(self.maze.grid[y]) - 1) or (y == 0 and x < len(self.maze.grid[y]) - 1):
                         cell.addConnection(self.maze.grid[y][x+1])
             return self.maze.grid
-
+        
 class binary_tree(genAlgorithm):
     name = "binary_tree"
     def __init__(self):
