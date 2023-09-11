@@ -196,7 +196,14 @@ class UI():
         
         base_point_1 = [(x * self.cell_width)  + self.maze_width*0.025, (y * (self.cell_height))  + self.maze_height*0.025]
         base_point_2 = [base_point_1[0]+self.cell_side_length, (y * (self.cell_height))  + self.maze_height*0.025]
-        if not(x % 2 == 1 and y%2 == 1) and (x % 2 == 1 or y%2 == 1):
+        
+        flipped = False
+        if x % 2 == 1:
+            flipped = True
+        if y%2 == 1:
+            flipped = not flipped
+
+        if flipped:
             base_point_1[1] += self.cell_height
             base_point_2[1] += self.cell_height
       
@@ -222,11 +229,11 @@ class UI():
     def draw_triangle_connection(self, cell1, cell2, size):
         cell1_base_point_1, cell1_base_point_2 = self.get_triangle_base_points(cell1.id[0], cell1.id[1])
         cell2_base_point_1, cell2_base_point_2 = self.get_triangle_base_points(cell2.id[0], cell2.id[1])
-     
+
         if list(map(int, cell1_base_point_1)) == list(map(int, cell2_base_point_1)):
             line_start = cell1_base_point_1
             line_end = cell1_base_point_2
-        elif self.distance(cell1_base_point_1[0], cell1_base_point_1[1], cell2_base_point_2[0], cell2_base_point_2[0] ) < self.distance(cell1_base_point_2[0], cell1_base_point_2[1], cell2_base_point_1[0], cell2_base_point_1[0] ):
+        elif self.distance(cell1_base_point_1[0], cell1_base_point_1[1], cell2_base_point_2[0], cell2_base_point_2[1] ) < self.distance(cell1_base_point_2[0], cell1_base_point_2[1], cell2_base_point_1[0], cell2_base_point_1[1] ):
             line_start = cell1_base_point_1
             line_end = cell2_base_point_2
         else:

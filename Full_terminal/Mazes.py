@@ -83,7 +83,6 @@ class Maze:
             self.flipped_grid = dict()
             for y in range(self.size):
                 self.grid[y] = []
-                self.flipped_grid[y] = []
                 for x in range(self.size):
                     self.grid[y].append(Cell(3, (x,y)))
         
@@ -467,14 +466,15 @@ class sidewinder(genAlgorithm):
                             connect_left = True
                     if end_run and y != 0:
                         self.x, self.y = random.choice(self.current_run).id
-                        if ((self.x) % 2 == 0 and (self.y)%2 == 0) or ((self.x) % 2 == 1 and (self.y)%2 == 1):
-                            self.x -= 1
+                        # if ((self.x) % 2 == 1 and (self.y)%2 == 0) or ((self.x) % 2 == 0 and (self.y)%2 == 1):
+                        #     self.x -= 1
                         self.maze.grid[self.y][self.x].addConnection(self.maze.grid[self.y-1][self.x])
                         self.current_run = []
                     elif (connect_left and x < len(self.maze.grid[y]) - 1) or (y == 0 and x < len(self.maze.grid[y]) - 1):
                         cell.addConnection(self.maze.grid[y][x+1])
             return self.maze.grid
         
+    
 class binary_tree(genAlgorithm):
     name = "binary_tree"
     def __init__(self):
