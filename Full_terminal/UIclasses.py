@@ -4,7 +4,7 @@ import time
 from abc import ABC, abstractmethod
 import math
 
-class UI():
+class UI():         
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
     RED = (255, 0 , 0)

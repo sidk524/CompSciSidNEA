@@ -650,8 +650,7 @@ class BinaryTree(GenAlgorithm):
                                 flipped = not flipped
                             if not flipped:
                                 cell.addConnection(self.__maze.grid[y-1][x])
-                                
-
+                                                    
                             else:
                                 cell.addConnection(self.__maze.grid[y][x-1])
                                 self.__maze.grid[y][x-1].addConnection(self.__maze.grid[y-1][x-1])
