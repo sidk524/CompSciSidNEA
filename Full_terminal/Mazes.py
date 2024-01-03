@@ -24,8 +24,13 @@ class Cell:
         if cell in self.__connections:
             self.__connections.remove(cell)
             cell.removeConnection(self)
-         
-        
+
+    def checkConnection(self, cell):
+        if cell in self.__connections:
+            return True
+        else:
+            return False     
+    
     def setParent(self, cell):  
         self.__parent = cell
 
@@ -103,7 +108,6 @@ class Maze:
         self.__validPath, self.__algorithm_route = self.__curr
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
        
-
     def getAlgorithmRouteIDs(self):
         return self.__algorithm_route_ids
     
@@ -410,6 +414,29 @@ class BreadthFirst(SolveAlgorithm):
                                 self.__queue.append(i)
 
             return False
+        elif self.__maze.getMazeType() == "triangular":
+            self.__queue = [self.__maze.getGrid()[0][0]]
+            self.__visitedCells = []
+            while len(self.__queue) > 0:
+                self.__currentCell = self.__queue.pop(0)
+                self.__visitedCells.append(self.__currentCell)
+                if self.__currentCell.getID() == (len(self.__maze.getGrid()[self.__maze.getMazeSize() - 1]) - 1, self.__maze.getMazeSize() - 1):
+                    path = []
+                    self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeSize() - 1][len(self.__maze.getGrid()[self.__maze.getMazeSize() - 1]) - 1]
+                    while self.__currentCell != None:
+                        path.append(self.__currentCell)
+                        self.__currentCell = self.__currentCell.getParent()
+                    return path, self.__visitedCells
+                else:
+                    self.__neighbours = self.getNeighbours(self.__currentCell, self.__maze)
+                    if len(self.__neighbours) > 0:
+                        for i in self.__neighbours:
+                            if not (i in self.__visitedCells):
+                                i.setParent(self.__currentCell)
+                                self.__queue.append(i)
+
+            return False
+        
 
     def solve_step(self, maze, clicked_cell_id, current_cell):
         self.__maze = maze
@@ -432,6 +459,20 @@ class BreadthFirst(SolveAlgorithm):
         elif self.__maze.getMazeType() == "hexagonal":
             print(self.__clicked_cell_id)
             if not(self.__clicked_cell_id[0] < 0 or self.__clicked_cell_id[0] >= len(self.__maze.getGrid()[self.__clicked_cell_id[1]]) or self.__clicked_cell_id[1] < 0 or self.__clicked_cell_id[1] >= self.__maze.getMazeSize()):
+                self.__algorithm_route_current_cell_index = self.__maze.getAlgorithmRoute().index(self.__current_cell)
+                if self.__clicked_cell_id in self.__maze.getAlgorithmRouteIDs():
+                    if self.__maze.getAlgorithmRouteIDs().index(self.__clicked_cell_id) == len(self.__maze.getAlgorithmRoute())-1 and self.__algorithm_route_current_cell_index == len(self.__maze.getAlgorithmRoute())-2:
+                        return "end"
+                    elif self.__maze.getAlgorithmRouteIDs()[self.__algorithm_route_current_cell_index+1] == self.__clicked_cell_id:
+                        return self.__maze.getGrid()[self.__clicked_cell_id[1]][self.__clicked_cell_id[0]]     
+                    else:
+                        return "wrong_move"
+                else:
+                    return "wrong_move"
+            else:
+                return "invalid_move"
+        elif self.__maze.getMazeType() == "triangular":
+            if not(self.__clicked_cell_id[0] < 0 or self.__clicked_cell_id[0] >= self.__maze.getMazeSize() or self.__clicked_cell_id[1] < 0 or self.__clicked_cell_id[1] >= self.__maze.getMazeSize()):
                 self.__algorithm_route_current_cell_index = self.__maze.getAlgorithmRoute().index(self.__current_cell)
                 if self.__clicked_cell_id in self.__maze.getAlgorithmRouteIDs():
                     if self.__maze.getAlgorithmRouteIDs().index(self.__clicked_cell_id) == len(self.__maze.getAlgorithmRoute())-1 and self.__algorithm_route_current_cell_index == len(self.__maze.getAlgorithmRoute())-2:
@@ -532,7 +573,7 @@ class Sidewinder(GenAlgorithm):
                         end_run = True
                     else:
                         decision = random.randint(0, 10)
-                        if decision <= 3:
+                        if decision <= 5:
                             end_run = True
                         else:
                             connect_left = True
@@ -608,8 +649,8 @@ class BinaryTree(GenAlgorithm):
                         pass
                     elif y == 0:
                         cell.addConnection(self.__maze.getGrid()[y][x-1])
-                    elif x == 0:
-                        cell.addConnection(self.__maze.getGrid()[y-1][x])
+                    # elif x == 0:
+                    #     cell.addConnection(self.__maze.getGrid()[y-1][x])
                     else:
                         decision = random.randint(0, 1)
                         if decision == 0:

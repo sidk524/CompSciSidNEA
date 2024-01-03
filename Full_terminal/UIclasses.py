@@ -255,20 +255,22 @@ class UI():
         return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
     def draw_triangle_connection(self, cell1, cell2, size):
-        cell1_base_point_1, cell1_base_point_2 = self.get_triangle_base_points(cell1.getID()[0], cell1.getID()[1])
-        cell2_base_point_1, cell2_base_point_2 = self.get_triangle_base_points(cell2.getID()[0], cell2.getID()[1])
+        if cell1.checkConnection(cell2):
+            
+            cell1_base_point_1, cell1_base_point_2 = self.get_triangle_base_points(cell1.getID()[0], cell1.getID()[1])
+            cell2_base_point_1, cell2_base_point_2 = self.get_triangle_base_points(cell2.getID()[0], cell2.getID()[1])
 
-        if list(map(int, cell1_base_point_1)) == list(map(int, cell2_base_point_1)):
-            line_start = cell1_base_point_1
-            line_end = cell1_base_point_2
+            if list(map(int, cell1_base_point_1)) == list(map(int, cell2_base_point_1)):
+                line_start = cell1_base_point_1
+                line_end = cell1_base_point_2
 
-        elif self.distance(cell1_base_point_1[0], cell1_base_point_1[1], cell2_base_point_2[0], cell2_base_point_2[1] ) < self.distance(cell1_base_point_2[0], cell1_base_point_2[1], cell2_base_point_1[0], cell2_base_point_1[1] ):
-            line_start = cell1_base_point_1
-            line_end = cell2_base_point_2
-        else:
-            line_start = cell1_base_point_2
-            line_end = cell2_base_point_1
-        pg.draw.line(self.__screen, self.WHITE, line_start, line_end, 2)
+            elif self.distance(cell1_base_point_1[0], cell1_base_point_1[1], cell2_base_point_2[0], cell2_base_point_2[1] ) < self.distance(cell1_base_point_2[0], cell1_base_point_2[1], cell2_base_point_1[0], cell2_base_point_1[1] ):
+                line_start = cell1_base_point_1
+                line_end = cell2_base_point_2
+            else:
+                line_start = cell1_base_point_2
+                line_end = cell2_base_point_1
+            pg.draw.line(self.__screen, self.WHITE, line_start, line_end, 2)
 
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
@@ -341,14 +343,16 @@ class UI():
                     self.__cell_connections = cell.getConnections()
                     for c in self.__cell_connections:
                          self.draw_triangle_connection(self.maze.getGrid()[y][x], c, self.__cell_side_length)
+
             self.__circle_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__maze_width*0.025 + self.__cell_width/2
             self.__circle_y = self.__current_cell.getID()[1] * self.__cell_height + self.__cell_height/2 + self.__maze_height*0.025
             pg.draw.circle(self.__screen, self.GREEN, (self.__circle_x, self.__circle_y), self.__cell_width/4)
-            
+            x = (self.__base_1, self.__base_2, self.__cell_side_length, self.__flipped)
+            if not x in self.__token_visited_cells_coords:
+                self.__token_visited_cells_coords.append(x)
             self.highlightVisitedCells()
-            self.__token_visited_cells_coords.append((self.__base_1, self.__base_2, self.__cell_side_length, self.__flipped))
 
-            print(self.__token_visited_cells_coords)
+
     def pygameLoop(self):
         pg.init()
         self.__infoObject = pg.display.Info()
