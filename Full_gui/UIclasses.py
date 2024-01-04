@@ -1,4 +1,5 @@
 import typing
+from PyQt5.QtCore import Qt
 import pygame as pg
 import Mazes
 import time
@@ -18,9 +19,6 @@ class UI():
     HOVER_COLOUR = (200, 200, 200)
 
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
-    
-
-   
 
     INSTRUCTIONS = {
         "Breadth First Search": "Breadth First Search is a search algorithm that traverses the maze by exploring all of the neighbour cells of the current cell before moving on to the next cell.",
@@ -514,46 +512,65 @@ class TerminalUI(UI):
         
         self.pygameLoop()
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-
 class GUI(UI):
     
     def __init__(self):
         self.app = QApplication(sys.argv)
-        
-        self.GUI = Ui_MainMenu()
-        self.GUI.setupUi()
+        self.screenWidth = self.app.desktop().screenGeometry().width()
+        self.screenHeight = self.app.desktop().screenGeometry().height()
+        self.GUI = Ui_MainMenu(self.screenWidth, self.screenHeight)
+        self.GUI.setupUi(self.screenWidth, self.screenHeight)
 
     def run(self):
         self.GUI.show()
         sys.exit(self.app.exec_())
-
-
-
+        
 
 class Ui_MainMenu(QMainWindow):
-    def __init__(self):
+    def __init__(self, desktopWidth, desktopHeight):
         super(Ui_MainMenu, self).__init__()
-        self.setupUi()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.setupUi(self.desktopWidth, self.desktopHeight)
 
-    def setupUi(self):
+    def setupUi(self, desktopWidth, desktopHeight):
+        
+        self.resize(desktopWidth*0.6, desktopHeight*0.6)
+        
         self.setObjectName("MainMenu")
-        self.resize(853, 607)
         self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        self.TitleLabel = QtWidgets.QLabel(self.centralwidget)
-        self.TitleLabel.setGeometry(QtCore.QRect(280, 60, 351, 101))
+        self.setCentralWidget(self.centralwidget)
+
+        # Create a vertical layout
+        layout = QtWidgets.QVBoxLayout(self.centralwidget)
+
+        # TitleLabel
+        self.TitleLabel = QtWidgets.QLabel("CompSci Maze Master", self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(20)
         self.TitleLabel.setFont(font)
-        self.TitleLabel.setObjectName("TitleLabel")
-        self.StartButton = QtWidgets.QPushButton(self.centralwidget)
-        self.StartButton.setGeometry(QtCore.QRect(310, 280, 181, 81))
+        self.TitleLabel.setAlignment(QtCore.Qt.AlignCenter)  # Center alignment
+        layout.addWidget(self.TitleLabel)  # Add to layout
+
+        # StartButton
+        self.StartButton = QtWidgets.QPushButton("Generate New Maze", self.centralwidget)
         self.StartButton.setObjectName("StartButton")
-        self.setCentralWidget(self.centralwidget)
+
+        # Set font size for the button text
+        buttonFont = QtGui.QFont()
+        buttonFont.setPointSize(12)  # Adjust the font size as needed
+        self.StartButton.setFont(buttonFont)
+
+        # Set button size
+        self.StartButton.setMinimumSize(250, 100)  # Adjust width and height as needed
+
+        layout.addWidget(self.StartButton, 0, QtCore.Qt.AlignCenter)  # Add to layout
+
+        # Set layout to central widget
+        self.centralwidget.setLayout(layout)
 
         self.menubar = QtWidgets.QMenuBar(self)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 853, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, desktopWidth*0.8, 21))
         self.menubar.setObjectName("menubar")
         self.menuHelp = QtWidgets.QMenu(self.menubar)
         self.menuHelp.setObjectName("menuHelp")
@@ -580,76 +597,97 @@ class Ui_MainMenu(QMainWindow):
 
     def StartButton_clicked(self):
         self.hide()
-        self.ForwardWindow = Ui_GenerateMazeMenu()
+        self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight)
         self.ForwardWindow.show()
 
-
-        
-
-class Ui_GenerateMazeMenu(QMainWindow):
-    def __init__(self):
+class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
+    def __init__(self, desktopWidth, desktopHeight):
         super(Ui_GenerateMazeMenu, self).__init__()
-        self.setupUi()
-    def setupUi(self):
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.setupUi(self.desktopWidth, self.desktopHeight)
+
+    def setupUi(self, desktopWidth, desktopHeight):
+        self.resize(desktopWidth*0.6, desktopHeight*0.6)
         self.setObjectName("GenerateMazeMenu")
-        self.resize(800, 584)
         self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        self.TitleGenerateMaze = QtWidgets.QLabel(self.centralwidget)
-        self.TitleGenerateMaze.setGeometry(QtCore.QRect(290, 50, 281, 121))
+        self.setCentralWidget(self.centralwidget)
+        
+        self.BackButton = QtWidgets.QPushButton("Back", self)
+        self.BackButton.setGeometry(20, 60, 100, 40)  # Adjust size and position as needed
+        self.BackButton.setObjectName("BackButon")
+        # Create a vertical layout
+        layout = QtWidgets.QVBoxLayout(self.centralwidget)
+
+        # TitleGenerateMaze
+        self.TitleGenerateMaze = QtWidgets.QLabel("Generate New Maze", self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(20)
         self.TitleGenerateMaze.setFont(font)
-        self.TitleGenerateMaze.setObjectName("TitleGenerateMaze")
-        self.GenerateMazeButton = QtWidgets.QPushButton(self.centralwidget)
-        self.GenerateMazeButton.setGeometry(QtCore.QRect(310, 460, 191, 71))
-        self.GenerateMazeButton.setObjectName("GenerateMazeButton")
-        self.MazeSettingsContainer = QtWidgets.QGroupBox(self.centralwidget)
-        self.MazeSettingsContainer.setGeometry(QtCore.QRect(220, 160, 381, 271))
-        self.MazeSettingsContainer.setObjectName("MazeSettingsContainer")
-        self.GenAlgorithmContainer = QtWidgets.QGroupBox(self.MazeSettingsContainer)
-        self.GenAlgorithmContainer.setGeometry(QtCore.QRect(20, 20, 341, 51))
-        self.GenAlgorithmContainer.setObjectName("GenAlgorithmContainer")
-        self.SidewinderRadioButton = QtWidgets.QRadioButton(self.GenAlgorithmContainer)
-        self.SidewinderRadioButton.setGeometry(QtCore.QRect(90, 20, 82, 17))
-        self.SidewinderRadioButton.setObjectName("SidewinderRadioButton")
-        self.BinaryTreeRadioButton = QtWidgets.QRadioButton(self.GenAlgorithmContainer)
-        self.BinaryTreeRadioButton.setGeometry(QtCore.QRect(200, 20, 82, 17))
-        self.BinaryTreeRadioButton.setObjectName("BinaryTreeRadioButton")
-        self.MazeSizeSlider = QtWidgets.QSlider(self.MazeSettingsContainer)
-        self.MazeSizeSlider.setGeometry(QtCore.QRect(20, 210, 341, 22))
+        self.TitleGenerateMaze.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(self.TitleGenerateMaze)
+
+        # MazeSettingsContainer
+        self.MazeSettingsContainer = QtWidgets.QGroupBox("Maze Settings", self.centralwidget)
+        self.MazeSettingsContainer.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(self.MazeSettingsContainer)
+
+        # GroupBox layout
+        groupBoxLayout = QtWidgets.QVBoxLayout(self.MazeSettingsContainer)
+
+        # GenAlgorithmContainer with horizontal layout
+        self.GenAlgorithmContainer = QtWidgets.QGroupBox("Generation Algorithm", self.MazeSettingsContainer)
+        genAlgorithmLayout = QtWidgets.QHBoxLayout()  # Horizontal layout
+        genAlgorithmLayout.addStretch(1)  # Add stretchable space on the left
+        self.SidewinderRadioButton = QtWidgets.QRadioButton("Sidewinder", self.GenAlgorithmContainer)
+        genAlgorithmLayout.addWidget(self.SidewinderRadioButton)
+        self.BinaryTreeRadioButton = QtWidgets.QRadioButton("Binary Tree", self.GenAlgorithmContainer)
+        genAlgorithmLayout.addWidget(self.BinaryTreeRadioButton)
+        genAlgorithmLayout.addStretch(1)  # Add stretchable space on the right
+        self.GenAlgorithmContainer.setLayout(genAlgorithmLayout)
+        groupBoxLayout.addWidget(self.GenAlgorithmContainer)
+
+        # SolveAlgorithmContainer with horizontal layout
+        self.SolveAlgorithmContainer = QtWidgets.QGroupBox("Solving Algorithm", self.MazeSettingsContainer)
+        solveAlgorithmLayout = QtWidgets.QHBoxLayout()
+        solveAlgorithmLayout.addStretch(1)
+        self.DFSRadioButton = QtWidgets.QRadioButton("Depth First Search", self.SolveAlgorithmContainer)
+        solveAlgorithmLayout.addWidget(self.DFSRadioButton)
+        self.BFSRadioButton = QtWidgets.QRadioButton("Breadth First Search", self.SolveAlgorithmContainer)
+        solveAlgorithmLayout.addWidget(self.BFSRadioButton)
+        self.ManualRadioButton = QtWidgets.QRadioButton("Manual Solve", self.SolveAlgorithmContainer)
+        solveAlgorithmLayout.addWidget(self.ManualRadioButton)
+        solveAlgorithmLayout.addStretch(1)
+        self.SolveAlgorithmContainer.setLayout(solveAlgorithmLayout)
+        groupBoxLayout.addWidget(self.SolveAlgorithmContainer)
+
+        # MazeTypeContainer with horizontal layout
+        self.MazeTypeContainer = QtWidgets.QGroupBox("Maze Type", self.MazeSettingsContainer)
+        mazeTypeLayout = QtWidgets.QHBoxLayout()
+        mazeTypeLayout.addStretch(1)
+        self.SquareRadioButton = QtWidgets.QRadioButton("Square", self.MazeTypeContainer)
+        mazeTypeLayout.addWidget(self.SquareRadioButton)
+        self.HexagonalRadioButton = QtWidgets.QRadioButton("Hexagonal", self.MazeTypeContainer)
+        mazeTypeLayout.addWidget(self.HexagonalRadioButton)
+        self.TriangularRadioButton = QtWidgets.QRadioButton("Triangular", self.MazeTypeContainer)
+        mazeTypeLayout.addWidget(self.TriangularRadioButton)
+        mazeTypeLayout.addStretch(1)
+        self.MazeTypeContainer.setLayout(mazeTypeLayout)
+        groupBoxLayout.addWidget(self.MazeTypeContainer)
+        # MazeSizeSlider and MazeSizeText
+        self.MazeSizeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
         self.MazeSizeSlider.setMinimum(5)
         self.MazeSizeSlider.setMaximum(100)
-        self.MazeSizeSlider.setOrientation(QtCore.Qt.Horizontal)
-        self.MazeSizeSlider.setObjectName("MazeSizeSlider")
-        self.MazeSizeText = QtWidgets.QLabel(self.MazeSettingsContainer)
-        self.MazeSizeText.setGeometry(QtCore.QRect(20, 190, 71, 16))
-        self.MazeSizeText.setObjectName("MazeSizeText")
-        self.SolveAlgorithmContainer = QtWidgets.QGroupBox(self.MazeSettingsContainer)
-        self.SolveAlgorithmContainer.setGeometry(QtCore.QRect(20, 80, 341, 51))
-        self.SolveAlgorithmContainer.setObjectName("SolveAlgorithmContainer")
-        self.DFSRadioButton = QtWidgets.QRadioButton(self.SolveAlgorithmContainer)
-        self.DFSRadioButton.setGeometry(QtCore.QRect(20, 20, 111, 17))
-        self.DFSRadioButton.setObjectName("DFSRadioButton")
-        self.BFSRadioButton = QtWidgets.QRadioButton(self.SolveAlgorithmContainer)
-        self.BFSRadioButton.setGeometry(QtCore.QRect(130, 20, 121, 17))
-        self.BFSRadioButton.setObjectName("BFSRadioButton")
-        self.ManualRadioButton = QtWidgets.QRadioButton(self.SolveAlgorithmContainer)
-        self.ManualRadioButton.setGeometry(QtCore.QRect(250, 20, 121, 17))
-        self.ManualRadioButton.setObjectName("ManualRadioButton")
-        self.MazeTypeContainer = QtWidgets.QGroupBox(self.MazeSettingsContainer)
-        self.MazeTypeContainer.setGeometry(QtCore.QRect(20, 140, 341, 51))
-        self.MazeTypeContainer.setObjectName("MazeTypeContainer")
-        self.SquareRadioButton = QtWidgets.QRadioButton(self.MazeTypeContainer)
-        self.SquareRadioButton.setGeometry(QtCore.QRect(60, 20, 61, 17))
-        self.SquareRadioButton.setObjectName("SquareRadioButton")
-        self.HexagonalRadioButton = QtWidgets.QRadioButton(self.MazeTypeContainer)
-        self.HexagonalRadioButton.setGeometry(QtCore.QRect(130, 20, 81, 17))
-        self.HexagonalRadioButton.setObjectName("HexagonalRadioButton")
-        self.TriangularRadioButton = QtWidgets.QRadioButton(self.MazeTypeContainer)
-        self.TriangularRadioButton.setGeometry(QtCore.QRect(220, 20, 71, 17))
-        self.TriangularRadioButton.setObjectName("TriangularRadioButton")
-        self.setCentralWidget(self.centralwidget)
+        groupBoxLayout.addWidget(self.MazeSizeSlider)
+        self.MazeSizeText = QtWidgets.QLabel("Maze Size: 5", self.MazeSettingsContainer)
+        groupBoxLayout.addWidget(self.MazeSizeText)
+
+        # GenerateMazeButton
+        self.GenerateMazeButton = QtWidgets.QPushButton("Generate", self.centralwidget)
+        self.GenerateMazeButton.setObjectName("GenerateMazeButton")
+        layout.addWidget(self.GenerateMazeButton, 0, QtCore.Qt.AlignCenter)
+
+        # Menu and status bar setup
         self.menubar = QtWidgets.QMenuBar(self)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
         self.menubar.setObjectName("menubar")
@@ -663,6 +701,9 @@ class Ui_GenerateMazeMenu(QMainWindow):
         self.setStatusBar(self.statusbar)
         self.menubar.addAction(self.menuHelp.menuAction())
         self.menubar.addAction(self.menuExit.menuAction())
+
+        # Set layout to central widget
+        self.centralwidget.setLayout(layout)
 
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -679,8 +720,8 @@ class Ui_GenerateMazeMenu(QMainWindow):
         self.MazeSizeSlider.setToolTip(_translate("GenerateMazeMenu", "Maze Size"))
         self.MazeSizeText.setText(_translate("GenerateMazeMenu", "Maze Size: 5"))
         self.SolveAlgorithmContainer.setTitle(_translate("GenerateMazeMenu", "Solving Algorithm"))
-        self.DFSRadioButton.setText(_translate("GenerateMazeMenu", "Depth first search"))
-        self.BFSRadioButton.setText(_translate("GenerateMazeMenu", "Breadth First search"))
+        self.DFSRadioButton.setText(_translate("GenerateMazeMenu", "Depth First Search"))
+        self.BFSRadioButton.setText(_translate("GenerateMazeMenu", "Breadth First Search"))
         self.ManualRadioButton.setText(_translate("GenerateMazeMenu", "Manual Solve"))
         self.MazeTypeContainer.setTitle(_translate("GenerateMazeMenu", "Maze Type"))
         self.SquareRadioButton.setText(_translate("GenerateMazeMenu", "Square"))
@@ -691,16 +732,23 @@ class Ui_GenerateMazeMenu(QMainWindow):
 
         self.MazeSizeSlider.valueChanged.connect(self.MazeSizeSlider_valueChanged)
         self.GenerateMazeButton.clicked.connect(self.GenerateMazeButton_clicked)
-    
+        self.BackButton.clicked.connect(self.BackButton_clicked)
+
     def MazeSizeSlider_valueChanged(self):
         self.MazeSizeText.setText("Maze Size: " + str(self.MazeSizeSlider.value()))
-    
+
+    def BackButton_clicked(self):
+        self.hide()
+        self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+        self.BackWindow.show()
+
     def GenerateMazeButton_clicked(self):
         if self.SidewinderRadioButton.isChecked():
             self.genAlgorithm = "sidewinder"
-
         elif self.BinaryTreeRadioButton.isChecked():
             self.genAlgorithm = "binary_tree"
+        else:
+            self.genAlgorithm = None
 
         if self.DFSRadioButton.isChecked():
             self.solveAlgorithm = "depth_first"
@@ -708,6 +756,8 @@ class Ui_GenerateMazeMenu(QMainWindow):
             self.solveAlgorithm = "breadth_first"
         elif self.ManualRadioButton.isChecked():
             self.solveAlgorithm = "manual"
+        else:
+            self.solveAlgorithm = None
 
         if self.SquareRadioButton.isChecked():
             self.mazeType = "square"
@@ -715,7 +765,17 @@ class Ui_GenerateMazeMenu(QMainWindow):
             self.mazeType = "hexagonal"
         elif self.TriangularRadioButton.isChecked():
             self.mazeType = "triangular"
-
+        else:
+            self.mazeType = None
+        if self.genAlgorithm != None and self.solveAlgorithm != None and self.mazeType != None:
+            self.hide()
+            self.ForwardWindow = Ui_Maze(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSlider.value())
+            self.ForwardWindow.show()
+        else:
+            self.Dialog = QtWidgets.QDialog()
+            self.error = Ui_Dialog()
+            self.error.setupUi(self.Dialog, self.desktopWidth, self.desktopHeight)
+            self.Dialog.show()
         self.mazeConfig = [self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSlider.value()]
 
     def getMazeConfig(self):
@@ -723,3 +783,126 @@ class Ui_GenerateMazeMenu(QMainWindow):
             return self.mazeConfig
         else:
             return None
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+class Ui_Dialog(object):
+    def setupUi(self, Dialog, desktopWidth, desktopHeight):
+        Dialog.setObjectName("Dialog")
+        Dialog.resize(desktopWidth * 0.2, desktopHeight * 0.2)
+
+        # Main vertical layout
+        self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
+        self.verticalLayout.setObjectName("verticalLayout")
+
+        # Spacer item for vertical alignment
+        self.verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(self.verticalSpacer)
+
+        # Label
+        self.label = QtWidgets.QLabel("Please select all options!", Dialog)
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.label.setFont(font)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
+
+        # Spacer item for vertical alignment
+        self.verticalSpacer2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(self.verticalSpacer2)
+
+        # Button Box
+        self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.buttonBox.setLayoutDirection(QtCore.Qt.LeftToRight)  # Right-align the buttons
+        self.verticalLayout.addWidget(self.buttonBox)
+
+        self.retranslateUi(Dialog)
+        self.buttonBox.accepted.connect(Dialog.accept)
+        self.buttonBox.rejected.connect(Dialog.reject)
+        QtCore.QMetaObject.connectSlotsByName(Dialog)
+
+    def retranslateUi(self, Dialog):
+        _translate = QtCore.QCoreApplication.translate
+        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label.setText(_translate("Dialog", "Please select all options!"))
+
+
+
+class Ui_MazeSolveWindow(QMainWindow):
+    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeSize):
+        super(Ui_MazeSolveWindow, self).__init__()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.genAlgorithm = genAlgorithm
+        self.solveAlgorithm = solveAlgorithm
+        self.mazeType = mazeType
+        self.mazeSize = mazeSize
+        self.UI = UI()
+        self.setupUi()
+
+    def setupUi(self):
+        MazeSolveWindow.setObjectName("MazeSolveWindow")
+        MazeSolveWindow.resize(800, 600)
+        self.centralwidget = QtWidgets.QWidget(MazeSolveWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.PyGameMazeWidget = QtWidgets.QWidget(self.centralwidget)
+        self.PyGameMazeWidget.setGeometry(QtCore.QRect(0, 0, 561, 571))
+        self.PyGameMazeWidget.setObjectName("PyGameMazeWidget")
+        self.InstructionsWidget = QtWidgets.QWidget(self.centralwidget)
+        self.InstructionsWidget.setGeometry(QtCore.QRect(559, -1, 231, 571))
+        self.InstructionsWidget.setObjectName("InstructionsWidget")
+        self.label = QtWidgets.QLabel(self.InstructionsWidget)
+        self.label.setGeometry(QtCore.QRect(50, 20, 151, 61))
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        font.setUnderline(True)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.label_2 = QtWidgets.QLabel(self.InstructionsWidget)
+        self.label_2.setGeometry(QtCore.QRect(20, 100, 131, 51))
+        self.label_2.setObjectName("label_2")
+        MazeSolveWindow.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(MazeSolveWindow)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
+        self.menubar.setObjectName("menubar")
+        self.menuHelp = QtWidgets.QMenu(self.menubar)
+        self.menuHelp.setObjectName("menuHelp")
+        self.menuExit = QtWidgets.QMenu(self.menubar)
+        self.menuExit.setObjectName("menuExit")
+        MazeSolveWindow.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(MazeSolveWindow)
+        self.statusbar.setObjectName("statusbar")
+        MazeSolveWindow.setStatusBar(self.statusbar)
+        self.menubar.addAction(self.menuHelp.menuAction())
+        self.menubar.addAction(self.menuExit.menuAction())
+
+        self.retranslateUi(MazeSolveWindow)
+        QtCore.QMetaObject.connectSlotsByName(MazeSolveWindow)
+
+    def retranslateUi(self, MazeSolveWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MazeSolveWindow.setWindowTitle(_translate("MazeSolveWindow", "MainWindow"))
+        self.label.setText(_translate("MazeSolveWindow", "Instructions"))
+        self.label_2.setText(_translate("MazeSolveWindow", "1. Example Instruction"))
+        self.menuHelp.setTitle(_translate("MazeSolveWindow", "Help"))
+        self.menuExit.setTitle(_translate("MazeSolveWindow", "Exit"))
+        self.startPygame()
+
+    def startPygame(self):
+        self.maze = Mazes.Maze(mazeType=self.mazeType, size=self.mazeSize, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm)
+        self.maze.generate()
+        self.UI.pygameLoop(GUI=True, maze=self.maze)
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MazeSolveWindow = QtWidgets.QMainWindow()
+    ui = Ui_MazeSolveWindow()
+    ui.setupUi(MazeSolveWindow)
+    MazeSolveWindow.show()
+    sys.exit(app.exec_())

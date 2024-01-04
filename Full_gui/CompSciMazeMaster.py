@@ -11,4 +11,4 @@ if uiType == "t":
 elif uiType == "g":
     UI = UIclasses.GUI()
 
-UI.run()   
+UI.run()
