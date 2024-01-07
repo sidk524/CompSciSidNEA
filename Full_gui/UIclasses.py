@@ -7,6 +7,10 @@ from abc import ABC, abstractmethod
 import math
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+
+from PyQt5.QtWidgets import QOpenGLWidget
+from PyQt5.QtCore import QTimer
+
 import sys
 
 class UI():         
@@ -17,6 +21,7 @@ class UI():
     BLUE = (0, 0, 255)
     YELLOW = (255, 255, 0)
     HOVER_COLOUR = (200, 200, 200)
+    HIGHLIGHT_COLOUR = (187, 216, 236)
 
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
 
@@ -93,8 +98,8 @@ class UI():
         if self.maze.getMazeType() == "square":
             if self.__mouse_pos_x < self.__maze_width and self.__mouse_pos_y < self.__maze_height and self.__mouse_pos_x > 0 and self.__mouse_pos_y > 0:
                 try:
-                    self.__cell_width = self.__maze_width // self.maze.getMazeSize()
-                    self.__cell_height = self.__maze_height // self.maze.getMazeSize()
+                    self.__cell_width = self.__maze_width // self.maze.getMazeWidth()
+                    self.__cell_height = self.__maze_height // self.maze.getMazeHeight()
                     self.__cell_x = self.__mouse_pos_x // self.__cell_width
                     self.__cell_y = self.__mouse_pos_y // self.__cell_height
                     self.__cell = self.maze.getGrid()[self.__cell_y][self.__cell_x]
@@ -112,7 +117,7 @@ class UI():
                     counter = 0
                     flag = False
                     
-                    for y in range(self.maze.getMazeSize()):
+                    for y in range(self.maze.getMazeHeight()):
                         
                         for x in range(len(self.maze.getGrid()[y])):
               
@@ -125,7 +130,7 @@ class UI():
                             counter += 1
                         if flag:
                             break                            
-                    pg.draw.polygon(self.__screen, self.HOVER_COLOUR, p, 2)
+                    pg.draw.polygon(self.__screen, self.HOVER_COLOUR, p, 3)
                     pg.mouse.set_cursor(*pg.cursors.broken_x)
                     if clicked:
                         return self.__cell
@@ -139,15 +144,13 @@ class UI():
                     self.__cell_x = self.__points.index(p)
                     counter = 0
                     flag = False
-                    
-                    for y in range(self.maze.getMazeSize()):
+                    for y in range(self.maze.getMazeHeight()):
                         
                         for x in range(len(self.maze.getGrid()[y])):
               
                             if counter == self.__cell_x:
                                 self.__cell = self.maze.getGrid()[y][x]
                                 
-
                                 flag = True
                                 break
                             counter += 1
@@ -173,29 +176,36 @@ class UI():
     def highlightVisitedCells(self):
         for cell in self.__token_visited_cells_coords:
             if self.maze.getMazeType() == "square":
-                pg.draw.rect(self.__screen, self.YELLOW, (cell[0], cell[1], self.__cell_width - self.__cell_width*0.2, self.__cell_height - self.__cell_height*0.2), 2)
+                pg.draw.rect(self.__screen, self.HIGHLIGHT_COLOUR, (cell[0], cell[1], self.__cell_width+2, self.__cell_height+2))
+                
+
             elif self.maze.getMazeType() == "hexagonal":
-                self.drawHexagon(cell[0]+self.__cell_width*0.1, cell[1]+self.__cell_width*0.1, self.__cell_side_length - self.__cell_side_length*0.2, self.YELLOW)
+                self.drawHexagon(cell[0], cell[1]+3, self.__cell_side_length, self.HIGHLIGHT_COLOUR, character=True, fill=True)
             elif self.maze.getMazeType() == "triangular":
                 
-                self.drawTriangle(cell[0], cell[1], cell[2] - cell[2]*0.2, cell[3], self.YELLOW)
+                self.drawTriangle(cell[0], cell[1], cell[2] , cell[3], self.HIGHLIGHT_COLOUR, character=True, fill=True)
 
-    def drawHexagon(self, x, y, size, color=(0, 0, 0)):
+    def drawHexagon(self, x, y, size, color=(0, 0, 0), width=3, character=False, fill=False):
         hexagon_points = []
         for i in range(6):
             angle_deg = 60 * i -30
             angle_rad = math.pi / 180 * angle_deg
             hexagon_points.append((x + size * math.cos(angle_rad), y + size * math.sin(angle_rad)))
-        pg.draw.polygon(self.__screen, color, hexagon_points, 2)
-        self.__points.append(hexagon_points)
+        
+        if fill:
+            pg.draw.polygon(self.__screen, color, hexagon_points, 0)
+        else:
+            pg.draw.polygon(self.__screen, color, hexagon_points, width)
+        if not character:
+            self.__points.append(hexagon_points)
 
 
 
-    def draw_hexagon_connection(self, cell1, cell2, x, y, size):
+    def draw_hexagon_connection(self, cell1, cell2, x, y, size, offsetWidth, offsetHeight):
         # draw a white line between the two cells
         self.__cell1_x, self.__cell1_y = x, y
         self.__cell2_x, self.__cell2_y = cell2.getID()
-        self.__cell2_x, self.__cell2_y = (self.__cell2_x * self.__cell_width) + (self.__cell_width/2) + self.__maze_width*0.025, self.__cell2_y * self.__cell_height + self.__maze_height*0.025 + self.__cell_width/2
+        self.__cell2_x, self.__cell2_y = (self.__cell2_x * self.__cell_width) + offsetWidth + (self.__cell_width/2) , self.__cell2_y * self.__cell_height  + self.__cell_width/2 + offsetHeight
         
 
         if cell2.getID()[1] % 2 == 1:
@@ -221,12 +231,12 @@ class UI():
                 self.__start_y = self.__cell1_y - self.__cell_side_length
                 self.__end_y = self.__cell2_y + self.__cell_side_length
 
-        pg.draw.line(self.__screen, self.WHITE, (self.__start_x, self.__start_y), (self.__end_x, self.__end_y), 4)
+        pg.draw.line(self.__screen, self.WHITE, (self.__start_x, self.__start_y), (self.__end_x, self.__end_y), 3)
 
     def get_triangle_base_points(self, x, y):
         
-        base_point_1 = [(x * self.__cell_width)  + self.__maze_width*0.025, (y * (self.__cell_height))  + self.__maze_height*0.025]
-        base_point_2 = [base_point_1[0]+self.__cell_side_length, (y * (self.__cell_height))  + self.__maze_height*0.025]
+        base_point_1 = [(x * self.__cell_width)  , (y * (self.__cell_height))  ]
+        base_point_2 = [base_point_1[0]+self.__cell_side_length, (y * (self.__cell_height))  ]
         
         flipped = False
         if x % 2 == 1:
@@ -240,7 +250,7 @@ class UI():
 
         return base_point_1, base_point_2
 
-    def drawTriangle(self, base_point_1, base_point_2, size, flipped, color=(0, 0, 0)):
+    def drawTriangle(self, base_point_1, base_point_2, size, flipped, color=(0, 0, 0), fill=False, character=False):
         triangle_points = [base_point_1, base_point_2]
         height = math.sqrt((size**2) - ((size/2)**2))
         x = (base_point_1[0] + base_point_2[0])/2
@@ -249,8 +259,13 @@ class UI():
         else:
             y = base_point_1[1] + height
         triangle_points.append((x, y))
-        pg.draw.polygon(self.__screen, color, triangle_points, 2)
-        self.__points.append(triangle_points)        
+        if fill:
+            pg.draw.polygon(self.__screen, color, triangle_points, 0)
+        else:
+            pg.draw.polygon(self.__screen, color, triangle_points, 2)
+        if not character and not(triangle_points in self.__points):
+            
+            self.__points.append(triangle_points)        
 
 
     def distance(self, x1, y1, x2, y2):
@@ -274,106 +289,118 @@ class UI():
                 line_end = cell2_base_point_1
             pg.draw.line(self.__screen, self.WHITE, line_start, line_end, 2)
 
+    def getCellFlipped(self, cell):
+        x, y = cell.getID()
+        flipped = False
+        if x % 2 == 1:
+            flipped = True
+        if y%2 == 1:
+            flipped = not flipped
+        return flipped
+    
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
         if self.maze.getMazeType() == "square":
-            self.__cell_width = self.__maze_width / self.maze.getMazeSize()
-            self.__cell_height = self.__maze_height / self.maze.getMazeSize()
+            self.__cell_width = self.__maze_width / self.maze.getMazeWidth()
+            self.__cell_height = self.__maze_height / self.maze.getMazeHeight()
+            self.highlightVisitedCells()
 
-            for y in range(self.maze.getMazeSize()):
-                for x in range(self.maze.getMazeSize()):
+            pg.draw.rect(self.__screen, self.GREEN, (self.__current_cell.getID()[0] * self.__cell_width + 3, self.__current_cell.getID()[1] * self.__cell_height + 3, self.__cell_width, self.__cell_height))
+            self.__token_visited_cells_coords.append((self.__current_cell.getID()[0] * self.__cell_width, self.__current_cell.getID()[1] * self.__cell_height))
+
+            for y in range(self.maze.getMazeHeight()):
+                for x in range(len(self.maze.getGrid()[y])):
                     cell = self.maze.getGrid()[y][x]
                     
                     if y == 0 or self.maze.getGrid()[y-1][x] not in cell.getConnections():
                         pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
-                                                    ((x+1) *  self.__cell_width, y *  self.__cell_height))
+                                                    ((x+1) *  self.__cell_width, y *  self.__cell_height), 6)
                 
                     if x == 0 or not(str(self.maze.getGrid()[y][x-1]) in [str(i) for i in cell.getConnections()]):
-                        pg.draw.line(self.__screen, self.RED, (x *  self.__cell_width, y *  self.__cell_height), 
-                                                    (x *  self.__cell_width, (y+1) *  self.__cell_height))
+                        pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
+                                                    (x *  self.__cell_width, (y+1) *  self.__cell_height), 6)
             
-            pg.draw.circle(self.__screen, self.GREEN, (self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2, self.__current_cell.getID()[1] * self.__cell_height + self.__cell_height/2), self.__cell_width/4)
-            self.__token_visited_cells_coords.append((self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width*0.1, self.__current_cell.getID()[1] * self.__cell_height + self.__cell_height*0.1))
-            self.highlightVisitedCells()
         elif self.maze.getMazeType() == "hexagonal":
             self.__points = []
-            self.__cell_width = ((self.__maze_width*0.95) / self.maze.getMazeSize())
+            self.__offsetWidth = self.__maze_width*0.025
+            self.__offsetHeight = self.__maze_height*0.025
+            self.__cell_width = ((self.__maze_width*0.9) / self.maze.getMazeWidth())
             self.__cell_side_length =  2*((self.__cell_width / 2) / math.tan(math.pi / 3))
             self.__cell_height = (self.__cell_side_length * 2) - (self.__cell_side_length / 2)
 
+            self.__current_cell_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__offsetWidth
+            self.__current_cell_y = self.__current_cell.getID()[1] * self.__cell_height  + self.__cell_height/2 + self.__offsetHeight 
+            if self.__current_cell.getID()[1] % 2 == 1:
+                self.__current_cell_x += 0.5 * self.__cell_width
+            self.__token_visited_cells_coords.append((self.__current_cell_x, self.__current_cell_y))
+            self.highlightVisitedCells()
+            self.drawHexagon(self.__current_cell_x, self.__current_cell_y+3, self.__cell_side_length, self.GREEN, character=True, fill=True)
 
-            for y in range(self.maze.getMazeSize()):
-                for x in range(self.maze.getMazeSize()):
-                    if y % 2 == 1 and x == self.maze.getMazeSize() - 1:
+            for y in range(self.maze.getMazeHeight()):
+                for x in range(len(self.maze.getGrid()[y])):
+                    if y % 2 == 1 and x == len(self.maze.getGrid()[y]) - 1:
                         break
                     cell = self.maze.getGrid()[y][x]
-                    self.__curr_x =  (x * self.__cell_width) + (self.__cell_width/2) + self.__maze_width*0.025
-                    self.__curr_y = (y * (self.__cell_height)) + (self.__cell_width/2)  + self.__maze_height*0.025
+                    self.__curr_x =  (x * self.__cell_width) + (self.__cell_width/2)  + self.__offsetWidth
+                    self.__curr_y = (y * (self.__cell_height)) + (self.__cell_width/2)  + self.__offsetHeight
                     if y % 2 == 1:
                         self.__curr_x += 0.5 * self.__cell_width
-
-                    self.drawHexagon(self.__curr_x, self.__curr_y, self.__cell_side_length)
+                        
                     self.__cell_connections = cell.getConnections()
 
-                    for c in self.__cell_connections:
-                        self.draw_hexagon_connection(self.maze.getGrid()[y][x], c, self.__curr_x, self.__curr_y, self.__cell_side_length)
+                    self.drawHexagon(self.__curr_x, self.__curr_y, self.__cell_side_length)
 
-            self.__circle_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__maze_width*0.025
-            self.__circle_y = self.__current_cell.getID()[1] * self.__cell_height + self.__cell_height/2 + self.__maze_height*0.025
-            if self.__current_cell.getID()[1] % 2 == 1:
-                self.__circle_x += 0.5 * self.__cell_width
-            pg.draw.circle(self.__screen, self.GREEN, (self.__circle_x, self.__circle_y), self.__cell_width/4)
-            self.__token_visited_cells_coords.append((self.__circle_x - self.__cell_width*0.1, self.__circle_y - self.__cell_height*0.1))
+                    for c in self.__cell_connections:
+                        self.draw_hexagon_connection(self.maze.getGrid()[y][x], c, self.__curr_x, self.__curr_y, self.__cell_side_length, self.__offsetWidth, self.__offsetHeight)
+            
             
         elif self.maze.getMazeType() == "triangular":
             self.__points = []
-            self.__cell_height = ((self.__maze_height*0.95) / (self.maze.getMazeSize()))
+            self.__cell_height = ((self.__maze_height*0.95) / (self.maze.getMazeHeight()))
             self.__cell_side_length = self.__cell_height / math.sin(math.pi/3)
             self.__cell_width = self.__cell_side_length / 2
-            for y in range(self.maze.getMazeSize()):
+            self.highlightVisitedCells()
+            self.__current_cell_base_point_1, self.__current_cell_base_point_2 = self.get_triangle_base_points(self.__current_cell.getID()[0], self.__current_cell.getID()[1])
+
+            
+            self.__current_cell_flipped = self.getCellFlipped(self.__current_cell)
+
+            self.drawTriangle(self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length, self.__current_cell_flipped, self.GREEN, fill=True, character=True)
+            self.__token_visited_cells_coords.append((self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length ,self.__current_cell_flipped))
+
+            for y in range(self.maze.getMazeHeight()):
                 for x in range(len(self.maze.getGrid()[y])):
-                    self.__flipped = False
+                   
                     cell = self.maze.getGrid()[y][x]
                     self.__base_1, self.__base_2 = self.get_triangle_base_points(x, y)
-                    if x % 2 == 1:
-                        self.__flipped = True
-                    if y%2 == 1:
-                        self.__flipped = not self.__flipped
-
+                    self.__flipped = self.getCellFlipped(cell)
                     self.drawTriangle(self.__base_1, self.__base_2, self.__cell_side_length, self.__flipped)
-              
                     self.__cell_connections = cell.getConnections()
+
                     for c in self.__cell_connections:
                          self.draw_triangle_connection(self.maze.getGrid()[y][x], c, self.__cell_side_length)
 
-            self.__circle_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__maze_width*0.025 + self.__cell_width/2
-            self.__circle_y = self.__current_cell.getID()[1] * self.__cell_height + self.__cell_height/2 + self.__maze_height*0.025
-            pg.draw.circle(self.__screen, self.GREEN, (self.__circle_x, self.__circle_y), self.__cell_width/4)
-            x = (self.__base_1, self.__base_2, self.__cell_side_length, self.__flipped)
-            if not x in self.__token_visited_cells_coords:
-                self.__token_visited_cells_coords.append(x)
-            self.highlightVisitedCells()
-
-
-    def pygameLoop(self):
+    def initPygame(self, maze=None):
         pg.init()
+        self.maze = maze
+
         self.__infoObject = pg.display.Info()
 
-        self.__width, self.__height = self.__infoObject.current_w*0.8, self.__infoObject.current_h*0.8
+        self.__width, self.__height = self.__infoObject.current_w*0.6, self.__infoObject.current_h*0.8
 
-        self.__maze_width, self.__maze_height = 2*(self.__width//3), self.__height
+        self.__maze_width, self.__maze_height = self.__width, self.__height
 
-        self.__side_width, self.__side_height = self.__width - self.__maze_width, self.__height
 
         self.__screen = pg.display.set_mode((self.__width, self.__height))
-        self.__running = True
         self.__screen.fill(self.WHITE)
         self.__current_cell = self.maze.getGrid()[0][0]
         self.__token_visited_cells_coords = []
+        self.__running = True
 
-        while self.__running:
+    def updatePygame(self):
+        if self.__running:
             self.displayMaze()
-            self.displaySide()
+            
             self.cell_hover()
             pg.display.flip()
             if self.maze.getMazeType() == "square":
@@ -406,9 +433,9 @@ class UI():
                         if x < self.__maze_width:
                             self.__solve_step_return_value = self.maze.solve_step((x//self.__cell_width, y//self.__cell_height), self.__current_cell)
                             if self.__solve_step_return_value == "end":
-                                self.__current_cell = self.maze.getGrid()[self.maze.getMazeSize()-1][self.maze.getMazeSize()-1]
+                                self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
                                 self.displayMaze()
-                                pg.display.flip()
+                                
                                 print("Congratulations! You solved the maze!")
                                 self.__running = False
                             elif self.__solve_step_return_value == "invalid_move":
@@ -427,12 +454,12 @@ class UI():
                         x, y = pg.mouse.get_pos()
                         if x < self.__maze_width:
                             self.__clicked_cell = self.cell_hover(clicked=True)
+                            print(self.__clicked_cell)
                             if self.__clicked_cell != None:
                                 self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID() , self.__current_cell)
                                 if self.__solve_step_return_value == "end":
-                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeSize()-1][len(self.maze.getGrid()[self.maze.getMazeSize()-1])-1]
-                                    self.displayMaze()
-                                    pg.display.flip()
+                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][len(self.maze.getGrid()[self.maze.getMazeHeight()-1])-1]
+                                    
                                     print("Congratulations! You solved the maze!")
                                     self.__running = False
                                 elif self.__solve_step_return_value == "invalid_move":
@@ -453,12 +480,12 @@ class UI():
                         x, y = pg.mouse.get_pos()
                         if x < self.__maze_width:
                             self.__clicked_cell = self.cell_hover(clicked=True)
+                            print(self.__clicked_cell)
                             if self.__clicked_cell != None:
-                                self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID() , self.__current_cell)
+                                self.__solve_step_return_value = self.maze.solve_step(self.__clicked_cell.getID() , self.__current_cell)
                                 if self.__solve_step_return_value == "end":
-                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeSize()-1][len(self.maze.getGrid()[self.maze.getMazeSize()-1])-1]
-                                    self.displayMaze()
-                                    pg.display.flip()
+                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][len(self.maze.getGrid()[self.maze.getMazeHeight()-1])-1]
+                                    
                                     print("Congratulations! You solved the maze!")
                                     self.__running = False
                                 elif self.__solve_step_return_value == "invalid_move":
@@ -470,15 +497,170 @@ class UI():
                             else:
                                 print("Invalid move!")
                 self.__screen.fill(self.WHITE)
-
-        pg.quit()
+            
+        else:
+            pg.quit()
+            return False
 
 
     def run(self):
         pass
 
 
-class TerminalUI(UI):
+
+
+class Ui_MazeSolveWindow(QMainWindow):
+    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm,  mazeType, mazeWidth, mazeHeight):
+        super(Ui_MazeSolveWindow, self).__init__()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.genAlgorithm = genAlgorithm
+        self.solveAlgorithm = solveAlgorithm
+        self.mazeType = mazeType
+        self.UIinstance = UI()
+        self.mazeWidth = mazeWidth
+        self.mazeHeight = mazeHeight
+
+        self.setupUi()
+        self.show()
+
+    def setupUi(self):
+        self.setObjectName("MazeSolveWindow")
+        self.resize(800, 600)
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.centralwidget.setObjectName("centralwidget")
+        self.States = QtWidgets.QGroupBox(self.centralwidget)
+        self.States.setGeometry(QtCore.QRect(0, 310, 471, 251))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setUnderline(True)
+        self.States.setFont(font)
+        self.States.setObjectName("States")
+        self.groupBox = QtWidgets.QGroupBox(self.centralwidget)
+        self.groupBox.setGeometry(QtCore.QRect(470, 0, 321, 321))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setUnderline(True)
+        self.groupBox.setFont(font)
+        self.groupBox.setObjectName("groupBox")
+        self.pushButton = QtWidgets.QPushButton(self.groupBox)
+        self.pushButton.setGeometry(QtCore.QRect(94, 70, 141, 23))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(True)
+        self.pushButton.setFont(font)
+        self.pushButton.setObjectName("pushButton")
+        self.pushButton_2 = QtWidgets.QPushButton(self.groupBox)
+        self.pushButton_2.setGeometry(QtCore.QRect(94, 110, 141, 23))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(True)
+        self.pushButton_2.setFont(font)
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_3 = QtWidgets.QPushButton(self.groupBox)
+        self.pushButton_3.setGeometry(QtCore.QRect(94, 160, 141, 23))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(True)
+        self.pushButton_3.setFont(font)
+        self.pushButton_3.setObjectName("pushButton_3")
+        self.pushButton_4 = QtWidgets.QPushButton(self.groupBox)
+        self.pushButton_4.setGeometry(QtCore.QRect(104, 210, 121, 23))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(True)
+        self.pushButton_4.setFont(font)
+        self.pushButton_4.setObjectName("pushButton_4")
+        self.groupBox_2 = QtWidgets.QGroupBox(self.centralwidget)
+        self.groupBox_2.setGeometry(QtCore.QRect(470, 320, 321, 261))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setUnderline(True)
+        self.groupBox_2.setFont(font)
+        self.groupBox_2.setObjectName("groupBox_2")
+        self.label_3 = QtWidgets.QLabel(self.groupBox_2)
+        self.label_3.setGeometry(QtCore.QRect(60, 70, 61, 21))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(False)
+        self.label_3.setFont(font)
+        self.label_3.setObjectName("label_3")
+        self.label_4 = QtWidgets.QLabel(self.groupBox_2)
+        self.label_4.setGeometry(QtCore.QRect(60, 110, 141, 21))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(False)
+        self.label_4.setFont(font)
+        self.label_4.setObjectName("label_4")
+        self.label_5 = QtWidgets.QLabel(self.groupBox_2)
+        self.label_5.setGeometry(QtCore.QRect(60, 150, 141, 21))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(False)
+        self.label_5.setFont(font)
+        self.label_5.setObjectName("label_5")
+        self.groupBox_3 = QtWidgets.QGroupBox(self.centralwidget)
+        self.groupBox_3.setGeometry(QtCore.QRect(0, 0, 471, 321))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setUnderline(True)
+        self.groupBox_3.setFont(font)
+        self.groupBox_3.setObjectName("groupBox_3")
+        self.label = QtWidgets.QLabel(self.groupBox_3)
+        self.label.setGeometry(QtCore.QRect(40, 70, 171, 41))
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        font.setUnderline(False)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
+        self.menubar.setObjectName("menubar")
+        self.menuHelp = QtWidgets.QMenu(self.menubar)
+        self.menuHelp.setObjectName("menuHelp")
+        self.menuExit = QtWidgets.QMenu(self.menubar)
+        self.menuExit.setObjectName("menuExit")
+        self.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(self)
+        self.statusbar.setObjectName("statusbar")
+        self.setStatusBar(self.statusbar)
+        self.menubar.addAction(self.menuHelp.menuAction())
+        self.menubar.addAction(self.menuExit.menuAction())
+
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("MazeSolveWindow", "MainWindow"))
+        self.States.setTitle(_translate("MazeSolveWindow", "Program State"))
+        self.groupBox.setTitle(_translate("MazeSolveWindow", "Actions"))
+        self.pushButton.setText(_translate("MazeSolveWindow", "Show Hint"))
+        self.pushButton_2.setText(_translate("MazeSolveWindow", "Show Distance Map"))
+        self.pushButton_3.setText(_translate("MazeSolveWindow", "Visualise solution"))
+        self.pushButton_4.setText(_translate("MazeSolveWindow", "Quit"))
+        self.groupBox_2.setTitle(_translate("MazeSolveWindow", "Summary:"))
+        self.label_3.setText(_translate("MazeSolveWindow", "Time: "))
+        self.label_4.setText(_translate("MazeSolveWindow", "Incorrect Moves: "))
+        self.label_5.setText(_translate("MazeSolveWindow", "Hints used: "))
+        self.groupBox_3.setTitle(_translate("MazeSolveWindow", "Psuedocode"))
+        self.label.setText(_translate("MazeSolveWindow", "1. Example Pseudocode"))
+        self.menuHelp.setTitle(_translate("MazeSolveWindow", "Help"))
+        self.menuExit.setTitle(_translate("MazeSolveWindow", "Exit"))
+        self.startPygameLoop()
+    
+    def startPygameLoop(self):
+        self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
+        self.maze.generate()
+        self.UIinstance.initPygame(self.maze)
+
+        self.pygame_timer = QTimer(self)
+        self.pygame_timer.timeout.connect(lambda: self.UIinstance.updatePygame())
+        self.pygame_timer.start(16)  # 60 FPS        
+    
+
+class TerminalUI():
 
     def __init__(self):
         pass
@@ -505,12 +687,13 @@ class TerminalUI(UI):
         mazeSize = input("Please input the size of the maze: ")
         if not mazeSize.isdigit() or int(mazeSize) < 5 or int(mazeSize) > 100:
             mazeSize = input("Please input a valid size, between 5 and 100: ")
-
+        
         self.maze = Mazes.Maze(mazeType=int(mazeType), size=int(mazeSize), gen_algorithm=self.__gen_algorithms[int(genAlgorithm)-1], solve_algorithm=self.__solve_algorithms[int(solveAlgorithm)-1])
 
         self.maze.generate()
-        
-        self.pygameLoop()
+    
+        self.GUI = Ui_MazeSolveWindow(self.screenWidth, self.screenHeight, self.__gen_algorithms[int(genAlgorithm)-1], self.__solve_algorithms[int(solveAlgorithm)-1], int(mazeType), int(mazeSize))
+        self.GUI.show()
 
 class GUI(UI):
     
@@ -674,13 +857,21 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         mazeTypeLayout.addStretch(1)
         self.MazeTypeContainer.setLayout(mazeTypeLayout)
         groupBoxLayout.addWidget(self.MazeTypeContainer)
-        # MazeSizeSlider and MazeSizeText
-        self.MazeSizeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
-        self.MazeSizeSlider.setMinimum(5)
-        self.MazeSizeSlider.setMaximum(100)
-        groupBoxLayout.addWidget(self.MazeSizeSlider)
-        self.MazeSizeText = QtWidgets.QLabel("Maze Size: 5", self.MazeSettingsContainer)
-        groupBoxLayout.addWidget(self.MazeSizeText)
+        # MazeSizeSliderX and MazeSizeText
+        self.MazeSizeSliderX = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
+        self.MazeSizeSliderX.setMinimum(5)
+        self.MazeSizeSliderX.setMaximum(100)
+        groupBoxLayout.addWidget(self.MazeSizeSliderX)
+        self.MazeSizeTextX = QtWidgets.QLabel("Maze Width: 5", self.MazeSettingsContainer)
+        groupBoxLayout.addWidget(self.MazeSizeTextX)
+
+        self.MazeSizeSliderY = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
+        self.MazeSizeSliderY.setMinimum(5)
+        self.MazeSizeSliderY.setMaximum(100)
+        groupBoxLayout.addWidget(self.MazeSizeSliderY)
+        self.MazeSizeTextY = QtWidgets.QLabel("Maze Height: 5", self.MazeSettingsContainer)
+        groupBoxLayout.addWidget(self.MazeSizeTextY)
+        
 
         # GenerateMazeButton
         self.GenerateMazeButton = QtWidgets.QPushButton("Generate", self.centralwidget)
@@ -717,8 +908,10 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.GenAlgorithmContainer.setTitle(_translate("GenerateMazeMenu", "Generation Algorithm"))
         self.SidewinderRadioButton.setText(_translate("GenerateMazeMenu", "Sidewinder"))
         self.BinaryTreeRadioButton.setText(_translate("GenerateMazeMenu", "Binary Tree"))
-        self.MazeSizeSlider.setToolTip(_translate("GenerateMazeMenu", "Maze Size"))
-        self.MazeSizeText.setText(_translate("GenerateMazeMenu", "Maze Size: 5"))
+        self.MazeSizeSliderX.setToolTip(_translate("GenerateMazeMenu", "Maze Width"))
+        self.MazeSizeTextX.setText(_translate("GenerateMazeMenu", "Maze Width: 5"))
+        self.MazeSizeSliderY.setToolTip(_translate("GenerateMazeMenu", "Maze Height"))
+        self.MazeSizeTextY.setText(_translate("GenerateMazeMenu", "Maze Height: 5"))
         self.SolveAlgorithmContainer.setTitle(_translate("GenerateMazeMenu", "Solving Algorithm"))
         self.DFSRadioButton.setText(_translate("GenerateMazeMenu", "Depth First Search"))
         self.BFSRadioButton.setText(_translate("GenerateMazeMenu", "Breadth First Search"))
@@ -730,13 +923,17 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.menuHelp.setTitle(_translate("GenerateMazeMenu", "Help"))
         self.menuExit.setTitle(_translate("GenerateMazeMenu", "Exit"))
 
-        self.MazeSizeSlider.valueChanged.connect(self.MazeSizeSlider_valueChanged)
+        self.MazeSizeSliderX.valueChanged.connect(self.MazeSizeSliderX_valueChanged)
+        self.MazeSizeSliderY.valueChanged.connect(self.MazeSizeSliderY_valueChanged)
         self.GenerateMazeButton.clicked.connect(self.GenerateMazeButton_clicked)
         self.BackButton.clicked.connect(self.BackButton_clicked)
 
-    def MazeSizeSlider_valueChanged(self):
-        self.MazeSizeText.setText("Maze Size: " + str(self.MazeSizeSlider.value()))
+    def MazeSizeSliderX_valueChanged(self):
+        self.MazeSizeTextX.setText("Maze Width: " + str(self.MazeSizeSliderX.value()))
 
+
+    def MazeSizeSliderY_valueChanged(self):
+        self.MazeSizeTextY.setText("Maze Height: " + str(self.MazeSizeSliderY.value()))
     def BackButton_clicked(self):
         self.hide()
         self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
@@ -751,7 +948,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.genAlgorithm = None
 
         if self.DFSRadioButton.isChecked():
-            self.solveAlgorithm = "depth_first"
+            self.solveAlgorithm =  "depth_first"
         elif self.BFSRadioButton.isChecked():
             self.solveAlgorithm = "breadth_first"
         elif self.ManualRadioButton.isChecked():
@@ -760,23 +957,23 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.solveAlgorithm = None
 
         if self.SquareRadioButton.isChecked():
-            self.mazeType = "square"
+            self.mazeType = 1
         elif self.HexagonalRadioButton.isChecked():
-            self.mazeType = "hexagonal"
+            self.mazeType = 2
         elif self.TriangularRadioButton.isChecked():
-            self.mazeType = "triangular"
+            self.mazeType = 3
         else:
             self.mazeType = None
         if self.genAlgorithm != None and self.solveAlgorithm != None and self.mazeType != None:
             self.hide()
-            self.ForwardWindow = Ui_Maze(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSlider.value())
+            self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value())
             self.ForwardWindow.show()
         else:
             self.Dialog = QtWidgets.QDialog()
             self.error = Ui_Dialog()
             self.error.setupUi(self.Dialog, self.desktopWidth, self.desktopHeight)
             self.Dialog.show()
-        self.mazeConfig = [self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSlider.value()]
+        self.mazeConfig = [self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value()]
 
     def getMazeConfig(self):
         if self.mazeConfig != None:
@@ -784,7 +981,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         else:
             return None
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog, desktopWidth, desktopHeight):
@@ -831,78 +1027,3 @@ class Ui_Dialog(object):
         self.label.setText(_translate("Dialog", "Please select all options!"))
 
 
-
-class Ui_MazeSolveWindow(QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeSize):
-        super(Ui_MazeSolveWindow, self).__init__()
-        self.desktopWidth = desktopWidth
-        self.desktopHeight = desktopHeight
-        self.genAlgorithm = genAlgorithm
-        self.solveAlgorithm = solveAlgorithm
-        self.mazeType = mazeType
-        self.mazeSize = mazeSize
-        self.UI = UI()
-        self.setupUi()
-
-    def setupUi(self):
-        MazeSolveWindow.setObjectName("MazeSolveWindow")
-        MazeSolveWindow.resize(800, 600)
-        self.centralwidget = QtWidgets.QWidget(MazeSolveWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        self.PyGameMazeWidget = QtWidgets.QWidget(self.centralwidget)
-        self.PyGameMazeWidget.setGeometry(QtCore.QRect(0, 0, 561, 571))
-        self.PyGameMazeWidget.setObjectName("PyGameMazeWidget")
-        self.InstructionsWidget = QtWidgets.QWidget(self.centralwidget)
-        self.InstructionsWidget.setGeometry(QtCore.QRect(559, -1, 231, 571))
-        self.InstructionsWidget.setObjectName("InstructionsWidget")
-        self.label = QtWidgets.QLabel(self.InstructionsWidget)
-        self.label.setGeometry(QtCore.QRect(50, 20, 151, 61))
-        font = QtGui.QFont()
-        font.setPointSize(20)
-        font.setUnderline(True)
-        self.label.setFont(font)
-        self.label.setObjectName("label")
-        self.label_2 = QtWidgets.QLabel(self.InstructionsWidget)
-        self.label_2.setGeometry(QtCore.QRect(20, 100, 131, 51))
-        self.label_2.setObjectName("label_2")
-        MazeSolveWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MazeSolveWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
-        self.menubar.setObjectName("menubar")
-        self.menuHelp = QtWidgets.QMenu(self.menubar)
-        self.menuHelp.setObjectName("menuHelp")
-        self.menuExit = QtWidgets.QMenu(self.menubar)
-        self.menuExit.setObjectName("menuExit")
-        MazeSolveWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MazeSolveWindow)
-        self.statusbar.setObjectName("statusbar")
-        MazeSolveWindow.setStatusBar(self.statusbar)
-        self.menubar.addAction(self.menuHelp.menuAction())
-        self.menubar.addAction(self.menuExit.menuAction())
-
-        self.retranslateUi(MazeSolveWindow)
-        QtCore.QMetaObject.connectSlotsByName(MazeSolveWindow)
-
-    def retranslateUi(self, MazeSolveWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MazeSolveWindow.setWindowTitle(_translate("MazeSolveWindow", "MainWindow"))
-        self.label.setText(_translate("MazeSolveWindow", "Instructions"))
-        self.label_2.setText(_translate("MazeSolveWindow", "1. Example Instruction"))
-        self.menuHelp.setTitle(_translate("MazeSolveWindow", "Help"))
-        self.menuExit.setTitle(_translate("MazeSolveWindow", "Exit"))
-        self.startPygame()
-
-    def startPygame(self):
-        self.maze = Mazes.Maze(mazeType=self.mazeType, size=self.mazeSize, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm)
-        self.maze.generate()
-        self.UI.pygameLoop(GUI=True, maze=self.maze)
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MazeSolveWindow = QtWidgets.QMainWindow()
-    ui = Ui_MazeSolveWindow()
-    ui.setupUi(MazeSolveWindow)
-    MazeSolveWindow.show()
-    sys.exit(app.exec_())
