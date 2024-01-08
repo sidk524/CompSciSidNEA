@@ -78,14 +78,15 @@ class Maze:
                 for y in range(self.__mazeHeight):
                     self.__grid[y] = []
                     if y % 2 == 0:
+                    
                         for x in range(self.__mazeWidth):
                             self.__grid[y].append(Cell(6, (x,y)))
                     else:
                         for x in range(self.__mazeWidth-1):
                             self.__grid[y].append(Cell(6, (x,y)))
+        
             elif self.__type == "triangular":
                 self.__grid = dict()
-                self.__flipped_grid = dict()
                 for y in range(self.__mazeHeight):
                     self.__grid[y] = []
                     for x in range(self.__mazeWidth):
@@ -190,7 +191,7 @@ class SolveAlgorithm(ABC):
                             self.__neighbours.append(self.__potential_neighbour)
                 return self.__neighbours
             elif self.__maze.getMazeType() == "hexagonal":
-                self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1), (self.__x + 1, self.__y - 1), (self.__x - 1, self.__y + 1)]
+                self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1), (self.__x + 1, self.__y - 1), (self.__x - 1, self.__y + 1), (self.__x + 1, self.__y + 1), (self.__x - 1, self.__y - 1)]
                 for i in self.__potential_neighbours:
                     if i[0] >= 0 and i[1] >= 0 and i[1] < self.__maze.getMazeHeight() and i[0] < len(self.__maze.getGrid()[i[1]]):
                             self.__potential_neighbour = self.__maze.getGrid()[i[1]][i[0]]
@@ -198,7 +199,7 @@ class SolveAlgorithm(ABC):
                                 self.__neighbours.append(self.__potential_neighbour)
                 return self.__neighbours
             elif self.__maze.getMazeType() == "triangular":
-                self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1)]
+                self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1), (self.__x + 1, self.__y - 1), (self.__x - 1, self.__y + 1), (self.__x + 1, self.__y + 1), (self.__x - 1, self.__y - 1)]
                 for i in self.__potential_neighbours:
                     if i[0] >= 0 and i[1] >= 0 and i[1] < self.__maze.getMazeHeight() and i[0] < len(self.__maze.getGrid()[i[1]]):
                             self.__potential_neighbour = self.__maze.getGrid()[i[1]][i[0]]
@@ -232,7 +233,7 @@ class Manual(SolveAlgorithm):
             self.__cell_neighbours = self.getNeighbours(self.__current_cell, self.__maze)
             if self.__clicked_cell_id[0] < 0 or self.__clicked_cell_id[0] >= len(self.__maze.getGrid()[self.__clicked_cell_id[1]]) or self.__clicked_cell_id[1] < 0 or self.__clicked_cell_id[1] >= self.__maze.getMazeHeight():
                 return "invalid_move"
-            if self.__clicked_cell_id == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeWidth()-1) and self.__clicked_cell_id in [ i.getID() for i in self.__cell_neighbours]:
+            if self.__clicked_cell_id == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeHeight()-1) and self.__clicked_cell_id in [ i.getID() for i in self.__cell_neighbours]:
                 return "end"
             elif self.__maze.getGrid()[self.__clicked_cell_id[1]][self.__clicked_cell_id[0]] in self.__cell_neighbours:
                 return self.__maze.getGrid()[self.__clicked_cell_id[1]][self.__clicked_cell_id[0]]
@@ -244,7 +245,7 @@ class Manual(SolveAlgorithm):
 
             if self.__clicked_cell_id[0] < 0 or self.__clicked_cell_id[0] >= self.__maze.getMazeWidth() or self.__clicked_cell_id[1] < 0 or self.__clicked_cell_id[1] >= self.__maze.getMazeHeight():
                 return "invalid_move"
-            if self.__clicked_cell_id == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeWidth()-1) and self.__clicked_cell_id in [ i.getID() for i in self.__cell_neighbours]:
+            if self.__clicked_cell_id == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeHeight()-1) and self.__clicked_cell_id in [ i.getID() for i in self.__cell_neighbours]:
                 return "end"
             elif self.__maze.getGrid()[self.__clicked_cell_id[1]][self.__clicked_cell_id[0]] in self.__cell_neighbours:
                 return self.__maze.getGrid()[self.__clicked_cell_id[1]][self.__clicked_cell_id[0]]
@@ -537,17 +538,16 @@ class Sidewinder(GenAlgorithm):
                     end_run = False
                     connect_left = False
                     
-                    if x == len(self.__maze.getGrid()[y]) - 1:
-                        # If it's the last cell in the row, end the run
-                        end_run = True
-                    else:
-                        # Randomly decide to connect to the left or end the run
-                        decision = random.randint(0, 1)
-                        if decision == 0:
+                    # if x == len(self.__maze.getGrid()[y]) - 1:
+                    #     # If it's the last cell in the row, end the run
+                    #     end_run = True
+                    # else:
+                    #     # Randomly decide to connect to the left or end the run
+                    decision = random.randint(0, 1)
+                    if decision == 0:
                             end_run = True
-                        else:
+                    else:
                             connect_left = True
-
                     if end_run and y != 0:
                         chosen_cell = random.choice(self.__current_run)
                         if chosen_cell.getID()[0] >= len(self.__maze.getGrid()[chosen_cell.getID()[1]-1]):

@@ -6,7 +6,7 @@ import time
 from abc import ABC, abstractmethod
 import math
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGroupBox, QGridLayout, QPushButton, QLabel
 
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import QTimer
@@ -96,17 +96,17 @@ class UI():
     def cell_hover(self, clicked=False):
         self.__mouse_pos_x, self.__mouse_pos_y = pg.mouse.get_pos()
         if self.maze.getMazeType() == "square":
-            if self.__mouse_pos_x < self.__maze_width and self.__mouse_pos_y < self.__maze_height and self.__mouse_pos_x > 0 and self.__mouse_pos_y > 0:
-                try:
-                    self.__cell_width = self.__maze_width // self.maze.getMazeWidth()
-                    self.__cell_height = self.__maze_height // self.maze.getMazeHeight()
-                    self.__cell_x = self.__mouse_pos_x // self.__cell_width
-                    self.__cell_y = self.__mouse_pos_y // self.__cell_height
-                    self.__cell = self.maze.getGrid()[self.__cell_y][self.__cell_x]
-                    pg.draw.rect(self.__screen, self.HOVER_COLOUR , (self.__cell_x * self.__cell_width, self.__cell_y * self.__cell_height, self.__cell_width, self.__cell_height), 2)
-                    pg.mouse.set_cursor(*pg.cursors.broken_x)
-                except:
-                    pass
+            for p in self.__points:
+                if self.__mouse_pos_x < self.__maze_width and self.__mouse_pos_y < self.__maze_height and self.__mouse_pos_x > 0 and self.__mouse_pos_y > 0:
+                    if self.is_inside_polygon(self.__mouse_pos_x, self.__mouse_pos_y, p):
+                        pg.draw.rect(self.__screen, self.HOVER_COLOUR, p, 2)
+                        pg.mouse.set_cursor(*pg.cursors.broken_x)
+                        if clicked:
+                            return self.__cell
+                    
+                else:
+                    break
+                    
         elif self.maze.getMazeType() == "hexagonal":
             for p in self.__points:
                 if self.__mouse_pos_x > self.__maze_width and self.__mouse_pos_y > self.__maze_height:
@@ -301,6 +301,7 @@ class UI():
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
         if self.maze.getMazeType() == "square":
+            self.__points = []
             self.__cell_width = self.__maze_width / self.maze.getMazeWidth()
             self.__cell_height = self.__maze_height / self.maze.getMazeHeight()
             self.highlightVisitedCells()
@@ -311,7 +312,7 @@ class UI():
             for y in range(self.maze.getMazeHeight()):
                 for x in range(len(self.maze.getGrid()[y])):
                     cell = self.maze.getGrid()[y][x]
-                    
+                    self.__points.append([(x * self.__cell_width, y * self.__cell_height), ((x+1) * self.__cell_width, y * self.__cell_height), ((x+1) * self.__cell_width, (y+1) * self.__cell_height), (x * self.__cell_width, (y+1) * self.__cell_height)])
                     if y == 0 or self.maze.getGrid()[y-1][x] not in cell.getConnections():
                         pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
                                                     ((x+1) *  self.__cell_width, y *  self.__cell_height), 6)
@@ -327,7 +328,6 @@ class UI():
             self.__cell_width = ((self.__maze_width*0.9) / self.maze.getMazeWidth())
             self.__cell_side_length =  2*((self.__cell_width / 2) / math.tan(math.pi / 3))
             self.__cell_height = (self.__cell_side_length * 2) - (self.__cell_side_length / 2)
-
             self.__current_cell_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__offsetWidth
             self.__current_cell_y = self.__current_cell.getID()[1] * self.__cell_height  + self.__cell_height/2 + self.__offsetHeight 
             if self.__current_cell.getID()[1] % 2 == 1:
@@ -338,8 +338,7 @@ class UI():
 
             for y in range(self.maze.getMazeHeight()):
                 for x in range(len(self.maze.getGrid()[y])):
-                    if y % 2 == 1 and x == len(self.maze.getGrid()[y]) - 1:
-                        break
+                    
                     cell = self.maze.getGrid()[y][x]
                     self.__curr_x =  (x * self.__cell_width) + (self.__cell_width/2)  + self.__offsetWidth
                     self.__curr_y = (y * (self.__cell_height)) + (self.__cell_width/2)  + self.__offsetHeight
@@ -407,31 +406,32 @@ class UI():
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         self.__running = False
-                    elif event.type == pg.KEYDOWN:
+                    # elif event.type == pg.KEYDOWN:
                         
-                        if event.key == pg.K_LEFT:
-                            self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0]-1, self.__current_cell.getID()[1]), self.__current_cell)
-                        elif event.key == pg.K_RIGHT:
-                            self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0]+1, self.__current_cell.getID()[1]), self.__current_cell)
-                        elif event.key == pg.K_UP:
-                            self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0], self.__current_cell.getID()[1]-1), self.__current_cell)
-                        elif event.key == pg.K_DOWN:
-                            self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0], self.__current_cell.getID()[1]+1), self.__current_cell)
-                        elif event.key == pg.K_SPACE:
-                            self.__solve_step_return_value = self.maze.solve_step("space", self.__current_cell)
-                        if self.__solve_step_return_value == "end":
-                            print("Congratulations! You solved the maze!")
-                            self.__running = False
-                        elif self.__solve_step_return_value == "invalid_move":
-                            print("Invalid move!")
-                        elif self.__solve_step_return_value == "wrong_move":
-                            print("Wrong move!")
-                        else:
-                            self.__current_cell = self.__solve_step_return_value
+                    #     if event.key == pg.K_LEFT:
+                    #         self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0]-1, self.__current_cell.getID()[1]), self.__current_cell)
+                    #     elif event.key == pg.K_RIGHT:
+                    #         self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0]+1, self.__current_cell.getID()[1]), self.__current_cell)
+                    #     elif event.key == pg.K_UP:
+                    #         self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0], self.__current_cell.getID()[1]-1), self.__current_cell)
+                    #     elif event.key == pg.K_DOWN:
+                    #         self.__solve_step_return_value = self.maze.solve_step((self.__current_cell.getID()[0], self.__current_cell.getID()[1]+1), self.__current_cell)
+                    #     elif event.key == pg.K_SPACE:
+                    #         self.__solve_step_return_value = self.maze.solve_step("space", self.__current_cell)
+                    #     if self.__solve_step_return_value == "end":
+                    #         print("Congratulations! You solved the maze!")
+                    #         self.__running = False
+                    #     elif self.__solve_step_return_value == "invalid_move":
+                    #         print("Invalid move!")
+                    #     elif self.__solve_step_return_value == "wrong_move":
+                    #         print("Wrong move!")
+                    #     else:
+                    #         self.__current_cell = self.__solve_step_return_value
                     elif event.type == pg.MOUSEBUTTONDOWN:
                         x, y = pg.mouse.get_pos()
+                        self.__clicked_cell = self.cell_hover(clicked=True)
                         if x < self.__maze_width:
-                            self.__solve_step_return_value = self.maze.solve_step((x//self.__cell_width, y//self.__cell_height), self.__current_cell)
+                            self.__solve_step_return_value = self.maze.solve_step(self.__clicked_cell.getID(), self.__current_cell)
                             if self.__solve_step_return_value == "end":
                                 self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
                                 self.displayMaze()
@@ -506,11 +506,8 @@ class UI():
     def run(self):
         pass
 
-
-
-
 class Ui_MazeSolveWindow(QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm,  mazeType, mazeWidth, mazeHeight):
+    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeWidth, mazeHeight):
         super(Ui_MazeSolveWindow, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
@@ -522,134 +519,88 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.mazeHeight = mazeHeight
 
         self.setupUi()
+        self.startPygameLoop()
+
         self.show()
 
     def setupUi(self):
         self.setObjectName("MazeSolveWindow")
-        self.resize(800, 600)
         self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        self.States = QtWidgets.QGroupBox(self.centralwidget)
-        self.States.setGeometry(QtCore.QRect(0, 310, 471, 251))
-        font = QtGui.QFont()
-        font.setPointSize(16)
-        font.setUnderline(True)
-        self.States.setFont(font)
-        self.States.setObjectName("States")
-        self.groupBox = QtWidgets.QGroupBox(self.centralwidget)
-        self.groupBox.setGeometry(QtCore.QRect(470, 0, 321, 321))
-        font = QtGui.QFont()
-        font.setPointSize(16)
-        font.setUnderline(True)
-        self.groupBox.setFont(font)
-        self.groupBox.setObjectName("groupBox")
-        self.pushButton = QtWidgets.QPushButton(self.groupBox)
-        self.pushButton.setGeometry(QtCore.QRect(94, 70, 141, 23))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(True)
-        self.pushButton.setFont(font)
-        self.pushButton.setObjectName("pushButton")
-        self.pushButton_2 = QtWidgets.QPushButton(self.groupBox)
-        self.pushButton_2.setGeometry(QtCore.QRect(94, 110, 141, 23))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(True)
-        self.pushButton_2.setFont(font)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.pushButton_3 = QtWidgets.QPushButton(self.groupBox)
-        self.pushButton_3.setGeometry(QtCore.QRect(94, 160, 141, 23))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(True)
-        self.pushButton_3.setFont(font)
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.pushButton_4 = QtWidgets.QPushButton(self.groupBox)
-        self.pushButton_4.setGeometry(QtCore.QRect(104, 210, 121, 23))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(True)
-        self.pushButton_4.setFont(font)
-        self.pushButton_4.setObjectName("pushButton_4")
-        self.groupBox_2 = QtWidgets.QGroupBox(self.centralwidget)
-        self.groupBox_2.setGeometry(QtCore.QRect(470, 320, 321, 261))
-        font = QtGui.QFont()
-        font.setPointSize(16)
-        font.setUnderline(True)
-        self.groupBox_2.setFont(font)
-        self.groupBox_2.setObjectName("groupBox_2")
-        self.label_3 = QtWidgets.QLabel(self.groupBox_2)
-        self.label_3.setGeometry(QtCore.QRect(60, 70, 61, 21))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(False)
-        self.label_3.setFont(font)
-        self.label_3.setObjectName("label_3")
-        self.label_4 = QtWidgets.QLabel(self.groupBox_2)
-        self.label_4.setGeometry(QtCore.QRect(60, 110, 141, 21))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(False)
-        self.label_4.setFont(font)
-        self.label_4.setObjectName("label_4")
-        self.label_5 = QtWidgets.QLabel(self.groupBox_2)
-        self.label_5.setGeometry(QtCore.QRect(60, 150, 141, 21))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(False)
-        self.label_5.setFont(font)
-        self.label_5.setObjectName("label_5")
-        self.groupBox_3 = QtWidgets.QGroupBox(self.centralwidget)
-        self.groupBox_3.setGeometry(QtCore.QRect(0, 0, 471, 321))
-        font = QtGui.QFont()
-        font.setPointSize(16)
-        font.setUnderline(True)
-        self.groupBox_3.setFont(font)
-        self.groupBox_3.setObjectName("groupBox_3")
-        self.label = QtWidgets.QLabel(self.groupBox_3)
-        self.label.setGeometry(QtCore.QRect(40, 70, 171, 41))
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setUnderline(False)
-        self.label.setFont(font)
-        self.label.setObjectName("label")
         self.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(self)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
-        self.menubar.setObjectName("menubar")
-        self.menuHelp = QtWidgets.QMenu(self.menubar)
-        self.menuHelp.setObjectName("menuHelp")
-        self.menuExit = QtWidgets.QMenu(self.menubar)
-        self.menuExit.setObjectName("menuExit")
-        self.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(self)
-        self.statusbar.setObjectName("statusbar")
-        self.setStatusBar(self.statusbar)
-        self.menubar.addAction(self.menuHelp.menuAction())
-        self.menubar.addAction(self.menuExit.menuAction())
 
-        self.retranslateUi()
-        QtCore.QMetaObject.connectSlotsByName(self)
+        initial_width = self.desktopWidth * 0.7  # 70% of the desktop width
+        initial_height = self.desktopHeight * 0.7  
+        self.resize(initial_width, initial_height)
+        # Main Layout
+        mainLayout = QtWidgets.QGridLayout(self.centralwidget)
 
-    def retranslateUi(self):
-        _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("MazeSolveWindow", "MainWindow"))
-        self.States.setTitle(_translate("MazeSolveWindow", "Program State"))
-        self.groupBox.setTitle(_translate("MazeSolveWindow", "Actions"))
-        self.pushButton.setText(_translate("MazeSolveWindow", "Show Hint"))
-        self.pushButton_2.setText(_translate("MazeSolveWindow", "Show Distance Map"))
-        self.pushButton_3.setText(_translate("MazeSolveWindow", "Visualise solution"))
-        self.pushButton_4.setText(_translate("MazeSolveWindow", "Quit"))
-        self.groupBox_2.setTitle(_translate("MazeSolveWindow", "Summary:"))
-        self.label_3.setText(_translate("MazeSolveWindow", "Time: "))
-        self.label_4.setText(_translate("MazeSolveWindow", "Incorrect Moves: "))
-        self.label_5.setText(_translate("MazeSolveWindow", "Hints used: "))
-        self.groupBox_3.setTitle(_translate("MazeSolveWindow", "Psuedocode"))
-        self.label.setText(_translate("MazeSolveWindow", "1. Example Pseudocode"))
-        self.menuHelp.setTitle(_translate("MazeSolveWindow", "Help"))
-        self.menuExit.setTitle(_translate("MazeSolveWindow", "Exit"))
-        self.startPygameLoop()
-    
+        # Create GroupBoxes
+        self.States = QGroupBox("Program State", self.centralwidget)
+        self.groupBox = QGroupBox("Actions", self.centralwidget)
+        self.groupBox_2 = QGroupBox("Summary:", self.centralwidget)
+        self.groupBox_3 = QGroupBox("Psuedocode", self.centralwidget)
+
+        # Add GroupBoxes to layout
+        mainLayout.addWidget(self.States, 1, 0, 1, 1)
+        mainLayout.addWidget(self.groupBox, 0, 1, 1, 1)
+        mainLayout.addWidget(self.groupBox_2, 1, 1, 1, 1)
+        mainLayout.addWidget(self.groupBox_3, 0, 0, 1, 1)
+
+        # Buttons
+        self.pushButton = QPushButton("Show Hint", self.groupBox)
+        self.pushButton_2 = QPushButton("Show Distance Map", self.groupBox)
+        self.pushButton_3 = QPushButton("Visualise solution", self.groupBox)
+        self.pushButton_4 = QPushButton("Quit", self.groupBox)
+
+        # Add Buttons to layout
+        actionLayout = QtWidgets.QVBoxLayout(self.groupBox)
+        actionLayout.addWidget(self.pushButton)
+        actionLayout.addWidget(self.pushButton_2)
+        actionLayout.addWidget(self.pushButton_3)
+        actionLayout.addWidget(self.pushButton_4)
+
+        # Labels
+        self.label_3 = QLabel("Time: ", self.groupBox_2)
+        self.label_4 = QLabel("Incorrect Moves: ", self.groupBox_2)
+        self.label_5 = QLabel("Hints used: ", self.groupBox_2)
+        self.label = QLabel("1. Example Pseudocode", self.groupBox_3)
+
+        # Add Labels to layout
+        summaryLayout = QtWidgets.QVBoxLayout(self.groupBox_2)
+        summaryLayout.addWidget(self.label_3)
+        summaryLayout.addWidget(self.label_4)
+        summaryLayout.addWidget(self.label_5)
+
+        pseudoLayout = QtWidgets.QVBoxLayout(self.groupBox_3)
+        pseudoLayout.addWidget(self.label)
+
+        self.resizeEvent = self.onResize
+
+    def onResize(self, event):
+        # Update font size based on window size
+        base_font_size = max(self.width() / 80, 8)  # Adjust base font size
+        font = QtGui.QFont()
+        font.setPointSize(base_font_size)
+        font.setUnderline(True)
+
+        self.States.setFont(font)
+        self.groupBox.setFont(font)
+        self.groupBox_2.setFont(font)
+        self.groupBox_3.setFont(font)
+
+        font.setPointSize(base_font_size * 0.6)  # Adjust for smaller font
+        font.setUnderline(False)
+        self.pushButton.setFont(font)
+        self.pushButton_2.setFont(font)
+        self.pushButton_3.setFont(font)
+        self.pushButton_4.setFont(font)
+        self.label_3.setFont(font)
+        self.label_4.setFont(font)
+        self.label_5.setFont(font)
+        self.label.setFont(font)
+
+        super(Ui_MazeSolveWindow, self).resizeEvent(event)
+
     def startPygameLoop(self):
         self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
         self.maze.generate()
@@ -657,8 +608,7 @@ class Ui_MazeSolveWindow(QMainWindow):
 
         self.pygame_timer = QTimer(self)
         self.pygame_timer.timeout.connect(lambda: self.UIinstance.updatePygame())
-        self.pygame_timer.start(16)  # 60 FPS        
-    
+        self.pygame_timer.start(16)  # 60 FPS
 
 class TerminalUI():
 
