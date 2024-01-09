@@ -23,7 +23,7 @@ class UI():
     HOVER_COLOUR = (200, 200, 200)
     HIGHLIGHT_COLOUR = (187, 216, 236)
     HINT_COLOUR = (255, 255, 0)
-
+    CHARACTERCOLOUR = 
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
 
     INSTRUCTIONS = {
@@ -325,6 +325,17 @@ class UI():
             self.__cell_base_point_1, self.__cell_base_point_2 = self.get_triangle_base_points(self.__cell_x, self.__cell_y)
             self.__cell_flipped = self.getCellFlipped(cell)
             self.drawTriangle(self.__cell_base_point_1, self.__cell_base_point_2, self.__cell_side_length, self.__cell_flipped, colour, fill=True, character=True)   
+    
+    def getDistanceColour(self, value):
+        # Ensure the value is in the range [0, 1]
+        value = max(0, min(value, 1))
+
+        # Interpolate between green and red
+        red = int(value * 255)
+        green = int((1 - value) * 255)
+        blue = 0
+
+        return (red, green, blue)
 
     def showHint(self):
         self.__hint_cell = self.maze.getHint(self.__current_cell)
@@ -334,10 +345,24 @@ class UI():
             self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
         else:
             print("No hint available!")
+
+    def showDistanceMap(self):
+        if self.__distanceMap == None:
+            self.__distanceMap = self.maze.getDistanceMap(self.__current_cell)
         
+        self.__show_distance_map = True
+        self.__dividing_factor = max(self.__distanceMap.values())
+        self.__normalised_distance_map = dict()
+        for cell, distance in self.__distanceMap.items():
+            self.__normalised_distance_map[cell] = distance / self.__dividing_factor
+
+        for cell, distance in self.__normalised_distance_map.items():
+            self.highlightCell(self.maze.getGrid()[cell[1]][cell[0]], colour=self.getDistanceColour(distance))
 
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
+        if self.__show_distance_map:
+            self.showDistanceMap()
         if self.maze.getMazeType() == "square":
             self.__points = []
             self.__cell_width = self.__maze_width / self.maze.getMazeWidth()
@@ -432,11 +457,11 @@ class UI():
         self.__infoObject = pg.display.Info()
 
         self.__width, self.__height = self.__infoObject.current_w*0.6, self.__infoObject.current_h*0.8
-
+        self.__show_distance_map = False
         self.__maze_width, self.__maze_height = self.__width, self.__height
         self.__addedPoints = False
         self.__show_hint = False
-
+        self.__distanceMap = None
         self.__screen = pg.display.set_mode((self.__width, self.__height))
         self.__screen.fill(self.WHITE)
         self.__current_cell = self.maze.getGrid()[0][0]
@@ -474,6 +499,8 @@ class UI():
                                 else:
                                     self.__current_cell = self.__solve_step_return_value
                                     self.__show_hint = False
+                                    self.__show_distance_map = False
+                                    self.__distanceMap = None
 
                         else:
                             print("Invalid move!")
@@ -501,6 +528,9 @@ class UI():
                                     print("Wrong move!")
                                 else:
                                     self.__current_cell = self.__solve_step_return_value
+                                    self.__show_hint = False
+                                    self.__show_distance_map = False
+                                    self.__distanceMap = None
                             else:
                                 print("Invalid move!")
                 self.__screen.fill(self.WHITE)
@@ -527,6 +557,9 @@ class UI():
                                     print("Wrong move!")
                                 else:
                                     self.__current_cell = self.__solve_step_return_value
+                                    self.__show_hint = False
+                                    self.__show_distance_map = False
+                                    self.__distanceMap = None
                             else:
                                 print("Invalid move!")
                 self.__screen.fill(self.WHITE)
@@ -650,6 +683,9 @@ class Ui_MazeSolveWindow(QMainWindow):
 
     def showHint(self):
         self.UIinstance.showHint()
+
+    def showDistanceMap(self):
+        self.UIinstance.showDistanceMap()
 class TerminalUI():
 
     def __init__(self):
@@ -681,12 +717,11 @@ class TerminalUI():
         self.maze = Mazes.Maze(mazeType=int(mazeType), size=int(mazeSize), gen_algorithm=self.__gen_algorithms[int(genAlgorithm)-1], solve_algorithm=self.__solve_algorithms[int(solveAlgorithm)-1])
 
         self.maze.generate()
-    
+
         self.GUI = Ui_MazeSolveWindow(self.screenWidth, self.screenHeight, self.__gen_algorithms[int(genAlgorithm)-1], self.__solve_algorithms[int(solveAlgorithm)-1], int(mazeType), int(mazeSize))
         self.GUI.show()
 
 class GUI(UI):
-    
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.screenWidth = self.app.desktop().screenGeometry().width()

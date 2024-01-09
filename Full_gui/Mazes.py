@@ -30,6 +30,8 @@ class Cell:
             return True
         else:
             return False     
+        
+        
     
     def setParent(self, cell):  
         self.__parent = cell
@@ -94,7 +96,7 @@ class Maze:
     
     def getSolveAlgorithmName(self):
         return self.__solve_algorithm_name
-    
+
     def generate(self):
         self.initialiseMaze()
         self.__grid = self.__genAlgorithm.generate(self)
@@ -104,15 +106,71 @@ class Maze:
             self.__genAlgorithm.generate(self)
             self.__curr = self.__solveAlgorithm.findValidPath(self)
             gen += 1
-        print(gen)
         self.__validPath, self.__algorithm_route = self.__curr
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
-        print(self.__algorithm_route_ids)
 
     def getHint(self, current_cell):
         for n, i in enumerate(self.__algorithm_route_ids):
             if i == current_cell.getID():
                 return self.__algorithm_route[n+1]
+            
+    def getNeighbours(self, cell):
+        self.__neighbours = []
+        self.__x = cell.getID()[0]
+        self.__y = cell.getID()[1]
+        if self.__type == "square":
+            self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1)]
+            for i in self.__potential_neighbours:
+                if i[0] >= 0 and i[0] < self.__mazeWidth and i[1] >= 0 and i[1] < self.__mazeHeight:
+                    self.__potential_neighbour = self.__grid[i[1]][i[0]]
+                    if self.__potential_neighbour in cell.getConnections():
+                        self.__neighbours.append(self.__potential_neighbour)
+            return self.__neighbours
+        elif self.__type == "hexagonal":
+            self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1), (self.__x + 1, self.__y - 1), (self.__x - 1, self.__y + 1), (self.__x + 1, self.__y + 1), (self.__x - 1, self.__y - 1)]
+            for i in self.__potential_neighbours:
+                if i[0] >= 0 and i[1] >= 0 and i[1] < self.__mazeHeight and i[0] < len(self.__grid[i[1]]):
+                        self.__potential_neighbour = self.__grid[i[1]][i[0]]
+                        if self.__potential_neighbour in cell.getConnections():
+                            self.__neighbours.append(self.__potential_neighbour)
+            return self.__neighbours
+        elif self.__type == "triangular":
+            self.__potential_neighbours = [ (self.__x + 1, self.__y), (self.__x - 1, self.__y), (self.__x, self.__y + 1), (self.__x, self.__y - 1), (self.__x + 1, self.__y - 1), (self.__x - 1, self.__y + 1), (self.__x + 1, self.__y + 1), (self.__x - 1, self.__y - 1)]
+            for i in self.__potential_neighbours:
+                if i[0] >= 0 and i[1] >= 0 and i[1] < self.__mazeHeight and i[0] < len(self.__grid[i[1]]):
+                        self.__potential_neighbour = self.__grid[i[1]][i[0]]
+                        if self.__potential_neighbour in cell.getConnections():
+                            self.__neighbours.append(self.__potential_neighbour)
+            return self.__neighbours
+        
+    def getDistanceMap(self, cell):
+        finalCoord = cell.getID()
+        distances = dict()
+
+        for y in range(len(self.getGrid().keys())):
+            for x in range(len(self.getGrid()[y])):
+                currCell = self.getGrid()[y][x]
+                if currCell.getID() == finalCoord:
+                    continue
+                self.__stack = [currCell]
+                self.__visitedCells = []
+                while len(self.__stack) > 0:
+                    self.__currentCell = self.__stack.pop()
+                    self.__visitedCells.append(self.__currentCell)
+                    if self.__currentCell.getID() == finalCoord:
+                        distances[currCell.getID()] = len(self.__stack)
+                        break
+                    else:
+                        self.__neighbours = self.getNeighbours(self.__currentCell)
+                        if len(self.__neighbours) > 0:
+                            for i in self.__neighbours:
+                                if not (i in self.__visitedCells):
+                                    i.setParent(self.__currentCell)
+                                    self.__stack.append(i)
+        return distances
+                
+
+
 
     def getAlgorithmRouteIDs(self):
         return self.__algorithm_route_ids
