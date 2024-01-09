@@ -23,7 +23,7 @@ class UI():
     HOVER_COLOUR = (200, 200, 200)
     HIGHLIGHT_COLOUR = (187, 216, 236)
     HINT_COLOUR = (255, 255, 0)
-    CHARACTERCOLOUR = 
+    CHARACTERCOLOUR = (0, 32, 235)
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
 
     INSTRUCTIONS = {
@@ -203,7 +203,6 @@ class UI():
             angle_deg = 60 * i -30
             angle_rad = math.pi / 180 * angle_deg
             hexagon_points.append((x + size * math.cos(angle_rad), y + size * math.sin(angle_rad)))
-        
         if fill:
             pg.draw.polygon(self.__screen, color, hexagon_points, 0)
         else:
@@ -326,16 +325,31 @@ class UI():
             self.__cell_flipped = self.getCellFlipped(cell)
             self.drawTriangle(self.__cell_base_point_1, self.__cell_base_point_2, self.__cell_side_length, self.__cell_flipped, colour, fill=True, character=True)   
     
-    def getDistanceColour(self, value):
-        # Ensure the value is in the range [0, 1]
-        value = max(0, min(value, 1))
+    def getDistanceColour(self, distance):
+        # Define the RGB tuples for green, orange, and red
+        green = (0, 255, 0)
+        orange = (255, 165, 0)
+        red = (255, 0, 0)
 
-        # Interpolate between green and red
-        red = int(value * 255)
-        green = int((1 - value) * 255)
-        blue = 0
+        # Normalize the distance to the range [0, 1]
+        distance = max(0, min(distance, 1))
 
-        return (red, green, blue)
+        # Calculate the color based on the distance
+        if distance < 0.5:
+            # Interpolate between green and orange
+            interp = distance * 2
+            r = int(green[0] + (orange[0] - green[0]) * interp)
+            g = int(green[1] + (orange[1] - green[1]) * interp)
+            b = int(green[2] + (orange[2] - green[2]) * interp)
+        else:
+            # Interpolate between orange and red
+            interp = (distance - 0.5) * 2
+            r = int(orange[0] + (red[0] - orange[0]) * interp)
+            g = int(orange[1] + (red[1] - orange[1]) * interp)
+            b = int(orange[2] + (red[2] - orange[2]) * interp)
+
+        return (r, g, b)
+
 
     def showHint(self):
         self.__hint_cell = self.maze.getHint(self.__current_cell)
@@ -359,6 +373,10 @@ class UI():
         for cell, distance in self.__normalised_distance_map.items():
             self.highlightCell(self.maze.getGrid()[cell[1]][cell[0]], colour=self.getDistanceColour(distance))
 
+    def hideDistanceMap(self):
+        self.__show_distance_map = False
+        self.__distanceMap = None
+
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
         if self.__show_distance_map:
@@ -370,7 +388,7 @@ class UI():
             self.highlightVisitedCells()
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
-            pg.draw.rect(self.__screen, self.GREEN, (self.__current_cell.getID()[0] * self.__cell_width + 3, self.__current_cell.getID()[1] * self.__cell_height + 3, self.__cell_width, self.__cell_height))
+            pg.draw.rect(self.__screen, self.CHARACTERCOLOUR, (self.__current_cell.getID()[0] * self.__cell_width + 3, self.__current_cell.getID()[1] * self.__cell_height + 3, self.__cell_width, self.__cell_height))
             self.__token_visited_cells_coords.append((self.__current_cell.getID()[0] * self.__cell_width, self.__current_cell.getID()[1] * self.__cell_height))
             
             for y in range(self.maze.getMazeHeight()):
@@ -381,11 +399,10 @@ class UI():
                     if y == 0 or self.maze.getGrid()[y-1][x] not in cell.getConnections():
                         pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
                                                     ((x+1) *  self.__cell_width, y *  self.__cell_height), 6)
-                
                     if x == 0 or not(str(self.maze.getGrid()[y][x-1]) in [str(i) for i in cell.getConnections()]):
                         pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
                                                     (x *  self.__cell_width, (y+1) *  self.__cell_height), 6)
-          
+
         elif self.maze.getMazeType() == "hexagonal":
             self.__points = []
             self.__offsetWidth = self.__maze_width*0.025
@@ -404,7 +421,7 @@ class UI():
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
             self.highlightVisitedCells()
              
-            self.drawHexagon(self.__current_cell_x, self.__current_cell_y+3, self.__cell_side_length, self.GREEN, character=True, fill=True)
+            self.drawHexagon(self.__current_cell_x, self.__current_cell_y+3, self.__cell_side_length, self.CHARACTERCOLOUR, character=True, fill=True)
            
             
             for y in range(self.maze.getMazeHeight()):
@@ -435,7 +452,7 @@ class UI():
             self.__current_cell_flipped = self.getCellFlipped(self.__current_cell)
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
-            self.drawTriangle(self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length, self.__current_cell_flipped, self.GREEN, fill=True, character=True)
+            self.drawTriangle(self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length, self.__current_cell_flipped, self.CHARACTERCOLOUR, fill=True, character=True)
             self.__token_visited_cells_coords.append((self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length ,self.__current_cell_flipped))
             
             for y in range(self.maze.getMazeHeight()):
@@ -685,12 +702,18 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.UIinstance.showHint()
 
     def showDistanceMap(self):
-        self.UIinstance.showDistanceMap()
+        if self.distanceMapButton.text() == "Show Distance Map":
+            self.distanceMapButton.setText("Hide Distance Map")
+            self.UIinstance.showDistanceMap()
+        else:
+            self.distanceMapButton.setText("Show Distance Map")
+            self.UIinstance.hideDistanceMap()
+
 class TerminalUI():
 
     def __init__(self):
-        pass
-    
+        pass    
+
     def Hello_world(self):
         print("Hello world!")
     
