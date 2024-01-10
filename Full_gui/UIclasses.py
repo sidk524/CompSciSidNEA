@@ -396,6 +396,7 @@ class UI():
         self.__show_solution = True
         for cell in self.__solution:
             self.highlightCell(cell, colour=self.YELLOW)
+        self.__solutionShown = True
 
     def hideSolution(self):
         self.__show_solution = False
@@ -410,6 +411,16 @@ class UI():
     def getTimeTaken(self):
         return time.time() - self.__time_taken
     
+    def generatePerformanceMetrics(self):
+        self.__solutionLength = len(self.maze.getSolution())
+        self.__optimalityScore = (self.__solutionLength - self.__incorrect_moves) / self.__solutionLength
+        self.__movesPerSecond = sum(self.__cellTimes) / len(self.__cellTimes)
+    
+    def updateMovesPerSecond(self):
+        self.__cellTimes.append(time.time() - self.__CellTime)
+        self.__CellTime = time.time()
+
+
 
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
@@ -521,6 +532,8 @@ class UI():
         self.__solution = None
         self.__show_solution = False
         self.__time_taken = time.time()
+        self.__CellTime = time.time()
+        self.__cellTimes = []
         self.__screen = pg.display.set_mode((self.__width, self.__height))
         self.__screen.fill(self.WHITE)
         self.__current_cell = self.maze.getGrid()[0][0]
@@ -545,6 +558,7 @@ class UI():
                             print(self.__clicked_cell)
                             if self.__clicked_cell != None:
                                 self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID(), self.__current_cell)
+
                                 if self.__solve_step_return_value == "end":
                                     self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
                                     self.displayMaze()
@@ -562,7 +576,7 @@ class UI():
                                     self.__show_hint = False
                                     self.__show_distance_map = False
                                     self.__distanceMap = None
-
+                                self.updateMovesPerSecond()
                         else:
                             print("Invalid move!")
                 self.__screen.fill(self.WHITE)
@@ -630,12 +644,21 @@ class UI():
                                 print("Invalid move!")
                 self.__screen.fill(self.WHITE)
             
-        # else:
-        #     pg.quit()
-        #     return False
-
     def quitPygame(self):
         pg.quit()
+        self.generatePerformanceMetrics()
+        self.__summary_stats = {
+            
+            "time_taken": self.__time_taken,
+            "hints_used": self.__hints_used,
+            "incorrect_moves": self.__incorrect_moves,
+            "gen_algorithm": self.maze.getGenAlgorithmName(),
+            "solve_algorithm": self.maze.getSolveAlgorithmName(),
+            "maze_type": self.maze.getMazeType(),
+            "maze_width": self.maze.getMazeWidth(),
+            "maze_height": self.maze.getMazeHeight()
+        }
+        return self.__summary_stats
         
 
     def run(self):
@@ -769,6 +792,7 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.hide_distance_map_timer.stop()
             self.incorrect_moves_timer.stop()
             self.get_time_taken_timer.stop()
+            self.UIinstance.quitPygame()
             
     def showHint(self):
         self.UIinstance.showHint()
@@ -777,7 +801,6 @@ class Ui_MazeSolveWindow(QMainWindow):
     def getDistanceMapStatus(self):
         if not self.UIinstance.getDistanceMapStatus():
             self.showDistanceMapButton.setText("Show Distance Map")
-
 
     def showDistanceMap(self):
         if self.showDistanceMapButton.text() == "Show Distance Map":
