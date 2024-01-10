@@ -146,31 +146,36 @@ class Maze:
     def getDistanceMap(self, cell):
         finalCoord = cell.getID()
         distances = dict()
-
-        for y in range(len(self.getGrid().keys())):
+        for y in range(self.__mazeHeight):
             for x in range(len(self.getGrid()[y])):
-                currCell = self.getGrid()[y][x]
+                currCell = self.__grid[y][x]
+                currCell.setParent(None)
                 if currCell.getID() == finalCoord:
                     continue
-                self.__stack = [currCell]
+                self.__queue = [currCell]
                 self.__visitedCells = []
-                while len(self.__stack) > 0:
-                    self.__currentCell = self.__stack.pop()
+                while len(self.__queue) > 0:
+                    self.__currentCell = self.__queue.pop(0)
                     self.__visitedCells.append(self.__currentCell)
                     if self.__currentCell.getID() == finalCoord:
-                        distances[currCell.getID()] = len(self.__stack)
+                        path_length = 0
+                        path_cell = self.__currentCell
+                        while path_cell is not None:
+                            path_length += 1
+                            path_cell = path_cell.getParent()
+                        distances[currCell.getID()] = path_length - 1 
                         break
                     else:
                         self.__neighbours = self.getNeighbours(self.__currentCell)
                         if len(self.__neighbours) > 0:
                             for i in self.__neighbours:
-                                if not (i in self.__visitedCells):
+                                if not (i in self.__visitedCells) and not (i in self.__queue):
                                     i.setParent(self.__currentCell)
-                                    self.__stack.append(i)
+                                    self.__queue.append(i)
         return distances
-                
-
-
+    
+    def getSolution(self):
+        return self.__validPath
 
     def getAlgorithmRouteIDs(self):
         return self.__algorithm_route_ids
@@ -457,51 +462,6 @@ class BreadthFirst(SolveAlgorithm):
                             i.setParent(self.__currentCell)
                             self.__queue.append(i)
         return False
-        # elif self.__maze.getMazeType() == "hexagonal":
-        #     self.__queue = [self.__maze.getGrid()[0][0]]
-        #     self.__visitedCells = []
-        #     while len(self.__queue) > 0:
-        #         self.__currentCell = self.__queue.pop(0)
-        #         self.__visitedCells.append(self.__currentCell)
-        #         if self.__currentCell.getID() == (self.__maze.getMazeWidth() - 1, self.__maze.getMazeHeight()-1):
-        #             path = []
-        #             self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1]
-        #             while self.__currentCell != None:
-        #                 path.append(self.__currentCell)
-        #                 self.__currentCell = self.__currentCell.getParent()
-        #             return path, self.__visitedCells
-        #         else:
-        #             self.__neighbours = self.getNeighbours(self.__currentCell, self.__maze)
-        #             if len(self.__neighbours) > 0:
-        #                 for i in self.__neighbours:
-        #                     if not (i in self.__visitedCells):
-        #                         i.setParent(self.__currentCell)
-        #                         self.__queue.append(i)
-
-        #     return False
-        # elif self.__maze.getMazeType() == "triangular":
-        #     self.__queue = [self.__maze.getGrid()[0][0]]
-        #     self.__visitedCells = []
-        #     while len(self.__queue) > 0:
-        #         self.__currentCell = self.__queue.pop(0)
-        #         self.__visitedCells.append(self.__currentCell)
-        #         if self.__currentCell.getID() == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMaze()-1):
-        #             path = []
-        #             self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1]
-        #             while self.__currentCell != None:
-        #                 path.append(self.__currentCell)
-        #                 self.__currentCell = self.__currentCell.getParent()
-        #             return path, self.__visitedCells
-        #         else:
-        #             self.__neighbours = self.getNeighbours(self.__currentCell, self.__maze)
-        #             if len(self.__neighbours) > 0:
-        #                 for i in self.__neighbours:
-        #                     if not (i in self.__visitedCells):
-        #                         i.setParent(self.__currentCell)
-        #                         self.__queue.append(i)
-
-        #     return False
-        
 
     def solve_step(self, maze, clicked_cell_id, current_cell):
         self.__maze = maze
@@ -597,11 +557,6 @@ class Sidewinder(GenAlgorithm):
                     end_run = False
                     connect_left = False
                     
-                    # if x == len(self.__maze.getGrid()[y]) - 1:
-                    #     # If it's the last cell in the row, end the run
-                    #     end_run = True
-                    # else:
-                    #     # Randomly decide to connect to the left or end the run
                     decision = random.randint(0, 1)
                     if decision == 0:
                             end_run = True
