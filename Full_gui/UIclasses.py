@@ -7,8 +7,10 @@ from abc import ABC, abstractmethod
 import math
 import random
 import time
+import datetime
+import os
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGroupBox, QGridLayout, QPushButton, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
 
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import QTimer
@@ -420,8 +422,20 @@ class UI():
         self.__cellTimes.append(time.time() - self.__CellTime)
         self.__CellTime = time.time()
 
+    def getPseudocodeText(self, solve_algorithm):
+        return self.PSUEDOCODE[self.TITLE_DICT[solve_algorithm]]
 
+    def getProgramStateText(self):
+        self.__currentNeighbours, self.__currentStackQueue = self.__maze.getProgramState(self.__current_cell)
+        self.__currentNeighboursText = "Current neighbours: " + str(self.__currentNeighbours)
+        if self.__maze.getSolveAlgorithmName() == "depth_first":
+            self.__currentStackQueueText = "Current stack: " + str(self.__currentStackQueue)
+        else:
+            self.__currentStackQueueText = "Current queue: " + str(self.__currentStackQueue)
 
+        self.__currentCellText = "Current cell: " + str(self.__current_cell.getID())
+        return self.__currentNeighboursText, self.__currentStackQueueText, self.__currentCellText
+    
     def displayMaze(self):
         self.__screen.fill(self.WHITE)
         if self.__show_distance_map:
@@ -531,6 +545,8 @@ class UI():
         self.__distanceMap = None
         self.__solution = None
         self.__show_solution = False
+        self.__solutionShown = False
+
         self.__time_taken = time.time()
         self.__CellTime = time.time()
         self.__cellTimes = []
@@ -565,6 +581,7 @@ class UI():
                                     
                                     print("Congratulations! You solved the maze!")
                                     self.__running = False
+                                    self.displayMaze()
                                     return True
                                 elif self.__solve_step_return_value == "invalid_move":
                                     print("Invalid move!")
@@ -597,6 +614,7 @@ class UI():
                                     
                                     print("Congratulations! You solved the maze!")
                                     self.__running = False
+                                    self.displayMaze()
                                     return True
                                 elif self.__solve_step_return_value == "invalid_move":
                                     print("Invalid move!")
@@ -616,7 +634,6 @@ class UI():
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         self.__running = False
-                    
                     elif event.type == pg.MOUSEBUTTONDOWN:
                         x, y = pg.mouse.get_pos()
                         if x < self.__maze_width:
@@ -629,6 +646,8 @@ class UI():
                                     
                                     print("Congratulations! You solved the maze!")
                                     self.__running = False
+                                    self.displayMaze()
+
                                     return True
                                 elif self.__solve_step_return_value == "invalid_move":
                                     print("Invalid move!")
@@ -645,21 +664,38 @@ class UI():
                 self.__screen.fill(self.WHITE)
             
     def quitPygame(self):
-        pg.quit()
         self.generatePerformanceMetrics()
         self.__summary_stats = {
             
-            "time_taken": self.__time_taken,
+            "time_taken": time.time() - self.__time_taken,
             "hints_used": self.__hints_used,
             "incorrect_moves": self.__incorrect_moves,
             "gen_algorithm": self.maze.getGenAlgorithmName(),
             "solve_algorithm": self.maze.getSolveAlgorithmName(),
             "maze_type": self.maze.getMazeType(),
             "maze_width": self.maze.getMazeWidth(),
-            "maze_height": self.maze.getMazeHeight()
+            "maze_height": self.maze.getMazeHeight(),
+            "solution_length": self.__solutionLength,
+            "optimality_score": self.__optimalityScore,
+            "moves_per_second": self.__movesPerSecond,
+            "solution_shown": self.__solutionShown
         }
         return self.__summary_stats
         
+    def downloadMaze(self):
+        try:
+            now = datetime.datetime.now()
+            formatted_now = now.strftime("%Y%m%d_%H%M%S")
+            dir_name = "pictures"
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            pg.image.save(self.__screen, os.path.join(dir_name, f"maze_screenshot_{formatted_now}.png"))
+            return True
+        except:
+            return False
+        
+    def closeProgram(self):
+        pg.quit()
 
     def run(self):
         pass
@@ -695,7 +731,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         # Create GroupBoxes
         self.States = QGroupBox("Program State", self.centralwidget)
         self.actionsBox = QGroupBox("Actions", self.centralwidget)
-        self.summaryBox = QGroupBox("Summary:", self.centralwidget)
+        self.summaryBox = QGroupBox("Summary", self.centralwidget)
         self.pseudocodeBox = QGroupBox("Psuedocode", self.centralwidget)
 
         # Add GroupBoxes to layout
@@ -726,7 +762,8 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.timeTakenLabel = QLabel("Time: 0s", self.summaryBox)
         self.incorrectMovesLabel = QLabel("Incorrect Moves: 0", self.summaryBox)
         self.hintsUsedLabel = QLabel("Hints used: 0", self.summaryBox)
-        self.label = QLabel("1. Example Pseudocode", self.pseudocodeBox)
+        self.pseudocodeLabel = QLabel(self.getPseudocode(self.solveAlgorithm), self.pseudocodeBox)
+        self.programStateLabel = QLabel("State", self.States)
 
         # Add Labels to layout
         summaryLayout = QtWidgets.QVBoxLayout(self.summaryBox)
@@ -735,7 +772,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         summaryLayout.addWidget(self.hintsUsedLabel)
 
         pseudoLayout = QtWidgets.QVBoxLayout(self.pseudocodeBox)
-        pseudoLayout.addWidget(self.label)
+        pseudoLayout.addWidget(self.pseudocodeLabel)
 
         self.incorrect_moves_timer = QTimer(self)
         self.incorrect_moves_timer.timeout.connect(lambda: self.updateIncorrectMoves())
@@ -749,6 +786,9 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.get_time_taken_timer.timeout.connect(lambda: self.getTimeTaken())
         self.get_time_taken_timer.start(1000)
 
+        self.update_program_state_timer = QTimer(self)
+        self.update_program_state_timer.timeout.connect(lambda: self.getProgramState())
+        self.update_program_state_timer.start(1000)
 
         self.resizeEvent = self.onResize
 
@@ -773,9 +813,16 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.timeTakenLabel.setFont(font)
         self.incorrectMovesLabel.setFont(font)
         self.hintsUsedLabel.setFont(font)
-        self.label.setFont(font)
+        self.pseudocodeLabel.setFont(font)
 
         super(Ui_MazeSolveWindow, self).resizeEvent(event)
+
+    def getPseudocode(self, algorithm):
+        return self.UIinstance.getPseudocodeText(algorithm)
+    
+    def getProgramState(self):
+        self.__currentNeighboursText, self.__currentStackQueueText, self.__currentCellText = self.UIinstance.getProgramStateText()
+        self.programStateLabel.setText(self.__currentCellText + "\n" + self.__currentNeighboursText + "\n" + self.__currentStackQueueText)
 
     def startPygameLoop(self):
         self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
@@ -792,7 +839,11 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.hide_distance_map_timer.stop()
             self.incorrect_moves_timer.stop()
             self.get_time_taken_timer.stop()
-            self.UIinstance.quitPygame()
+            self.__summaryStats = self.UIinstance.quitPygame()
+            self.hide()
+            self.NextWindow = Ui_DialogMazeSolved(self.desktopWidth, self.desktopHeight, self.__summaryStats, self.UIinstance)
+            self.NextWindow.show()
+
             
     def showHint(self):
         self.UIinstance.showHint()
@@ -834,6 +885,129 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
         self.BackWindow.show()
 
+class Ui_DialogMazeSolved(QMainWindow):
+    def __init__(self, desktopWidth, desktopHeight, summaryStats, UIinstance):
+        super(Ui_DialogMazeSolved, self).__init__()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.__summaryStats = summaryStats
+        self.__UIinstance = UIinstance
+
+        self.setupUi()
+        self.show()
+
+    def setupUi(self):
+        self.setObjectName("Dialog")
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.setCentralWidget(self.centralwidget)
+
+        initial_width = self.desktopWidth * 0.7
+        initial_height = self.desktopHeight * 0.7
+        self.resize(initial_width, initial_height)
+
+        mainLayout = QGridLayout(self.centralwidget)
+
+        self.summaryGroupBox = QGroupBox("Summary Stats", self.centralwidget)
+        self.mazeSolvedGroupBox = QGroupBox("Maze Solved", self.centralwidget)
+        self.actionButtonsGroupBox = QGroupBox("Action Buttons", self.centralwidget)
+
+        mainLayout.addWidget(self.summaryGroupBox, 0, 0)
+        mainLayout.addWidget(self.mazeSolvedGroupBox, 0, 1)
+        mainLayout.addWidget(self.actionButtonsGroupBox, 1, 0, 1, 2)
+
+        # Summary GroupBox
+        summaryLayout = QVBoxLayout(self.summaryGroupBox)
+        self.__time_taken = self.__summaryStats['time_taken']
+        if self.__time_taken >= 60:
+            self.__timeTakenText = f"Time Taken: {int(self.__time_taken/60)}m {int(self.__time_taken%60)}s"
+        else:
+            self.__timeTakenText = f"Time Taken: {int(self.__time_taken)}s"
+
+        self.timeTakenLabel = QLabel(f"{self.__timeTakenText}", self.summaryGroupBox)
+        self.hintsUsedLabel = QLabel(f"Hints Used: {self.__summaryStats['hints_used']}", self.summaryGroupBox)
+        self.incorrectMovesLabel = QLabel(f"Incorrect Moves: {self.__summaryStats['incorrect_moves']}", self.summaryGroupBox)
+        self.optimalityScoreLabel = QLabel(f"Optimality Score: {(self.__summaryStats['optimality_score']*100):.2f}%", self.summaryGroupBox)
+        self.movesPerSecondLabel = QLabel(f"Moves Per Second: {self.__summaryStats['moves_per_second']:.2f}", self.summaryGroupBox)
+        self.solutionLengthLabel = QLabel(f"Solution Length: {self.__summaryStats['solution_length']}", self.summaryGroupBox)
+
+        summaryLayout.addWidget(self.timeTakenLabel)
+        summaryLayout.addWidget(self.hintsUsedLabel)
+        summaryLayout.addWidget(self.incorrectMovesLabel)
+        summaryLayout.addWidget(self.optimalityScoreLabel)
+        summaryLayout.addWidget(self.movesPerSecondLabel)
+        summaryLayout.addWidget(self.solutionLengthLabel)
+        # Maze Solved GroupBox
+
+        mazeSolvedLayout = QVBoxLayout(self.mazeSolvedGroupBox)
+        self.generationAlgorithmLabel = QLabel(f"Generation Algorithm: {self.__summaryStats['gen_algorithm']}", self.mazeSolvedGroupBox)
+        self.solvingAlgorithmLabel = QLabel(f"Solving Algorithm: {self.__summaryStats['solve_algorithm']}", self.mazeSolvedGroupBox)
+        self.mazeTypeLabel = QLabel(f"Maze Type: {self.__summaryStats['maze_type']}", self.mazeSolvedGroupBox)
+        self.mazeWidthLabel = QLabel(f"Maze Width: {self.__summaryStats['maze_width']}", self.mazeSolvedGroupBox)
+        self.mazeHeightLabel = QLabel(f"Maze Height: {self.__summaryStats['maze_height']}", self.mazeSolvedGroupBox)
+
+        mazeSolvedLayout.addWidget(self.generationAlgorithmLabel)
+        mazeSolvedLayout.addWidget(self.solvingAlgorithmLabel)
+        mazeSolvedLayout.addWidget(self.mazeTypeLabel)
+        mazeSolvedLayout.addWidget(self.mazeWidthLabel)
+        mazeSolvedLayout.addWidget(self.mazeHeightLabel)
+
+        # Action Buttons GroupBox
+        actionButtonsLayout = QVBoxLayout(self.actionButtonsGroupBox)
+        self.returnToMenuButton = QPushButton("Return to Menu", self.actionButtonsGroupBox)
+        self.downloadMazeButton = QPushButton("Download Maze", self.actionButtonsGroupBox)
+        actionButtonsLayout.addWidget(self.returnToMenuButton)
+        actionButtonsLayout.addWidget(self.downloadMazeButton)
+        self.returnToMenuButton.clicked.connect(lambda: self.returnToMenu())
+        self.downloadMazeButton.clicked.connect(lambda: self.downloadMaze())
+
+        self.resizeEvent = self.onResize
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        # Set the texts for all the labels and buttons as per your requirement
+
+
+    def onResize(self, event):
+        base_font_size = max(self.width() / 80, 8)
+        font = QtGui.QFont()
+        font.setPointSize(base_font_size)
+
+        
+        # Set font for all group boxes
+        # Set font for all labels and buttons with adjusted size
+        self.summaryGroupBox.setFont(font)
+        self.mazeSolvedGroupBox.setFont(font)
+        self.actionButtonsGroupBox.setFont(font)
+
+        font.setPointSize(base_font_size * 0.6)  # Adjust for smaller font
+        font.setUnderline(False)
+
+        self.timeTakenLabel.setFont(font)
+        self.hintsUsedLabel.setFont(font)
+        self.incorrectMovesLabel.setFont(font)
+        self.optimalityScoreLabel.setFont(font)
+        self.movesPerSecondLabel.setFont(font)
+        self.solutionLengthLabel.setFont(font)
+        self.generationAlgorithmLabel.setFont(font)
+        self.solvingAlgorithmLabel.setFont(font)
+        self.mazeTypeLabel.setFont(font)
+        self.mazeWidthLabel.setFont(font)
+        self.mazeHeightLabel.setFont(font)
+        self.returnToMenuButton.setFont(font)
+        self.downloadMazeButton.setFont(font)
+
+        super(Ui_DialogMazeSolved, self).resizeEvent(event)
+
+    def returnToMenu(self):
+        self.__UIinstance.closeProgram()
+        self.hide()
+        self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+        self.BackWindow.show()
+
+    def downloadMaze(self):
+        self.__UIinstance.downloadMaze()
+
+        #ERROR HANDLE THE MAZE DOWNLOAD HERE.
 
 class TerminalUI():
 

@@ -96,6 +96,9 @@ class Maze:
     
     def getSolveAlgorithmName(self):
         return self.__solve_algorithm_name
+    
+    def getGenAlgorithmName(self):
+        return self.__gen_algorithm_name
 
     def generate(self):
         self.initialiseMaze()
@@ -106,7 +109,10 @@ class Maze:
             self.__genAlgorithm.generate(self)
             self.__curr = self.__solveAlgorithm.findValidPath(self)
             gen += 1
-        self.__validPath, self.__algorithm_route = self.__curr
+        self.__algorithm_route, self.__programStates = self.__curr
+        self.__validPath = [s[0] for s in self.__programStates]
+
+
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
 
     def getHint(self, current_cell):
@@ -156,7 +162,7 @@ class Maze:
                 self.__visitedCells = []
                 while len(self.__queue) > 0:
                     self.__currentCell = self.__queue.pop(0)
-                    self.__visitedCells.append(self.__currentCell)
+                    self.__visitedCells.append( self.__currentCell)
                     if self.__currentCell.getID() == finalCoord:
                         path_length = 0
                         path_cell = self.__currentCell
@@ -174,6 +180,11 @@ class Maze:
                                     self.__queue.append(i)
         return distances
     
+    def getProgramState(self, current_cell):
+        for s in self.__programStates:
+            if s[0].getID() == current_cell.getID():
+                return s[1], s[2]
+
     def getSolution(self):
         return self.__validPath
 
@@ -330,7 +341,9 @@ class DepthFirst(SolveAlgorithm):
             self.__visitedCells = []
             while len(self.__stack) > 0:
                     self.__currentCell = self.__stack.pop()
-                    self.__visitedCells.append(self.__currentCell)
+                    self.__neighbours = self.getNeighbours(self.__currentCell, self.__maze)
+
+                    self.__visitedCells.append([self.__currentCell, self.__neighbours, self.__stack])
                     if self.__currentCell.getID() == (self.__maze.getMazeWidth() - 1, self.__maze.getMazeHeight()-1):
                         path = []
                         self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][self.__maze.getMazeWidth() - 1]
@@ -339,7 +352,6 @@ class DepthFirst(SolveAlgorithm):
                             self.__currentCell = self.__currentCell.getParent()
                         return path, self.__visitedCells
                     else:
-                        self.__neighbours = self.getNeighbours(self.__currentCell, self.__maze)
                         if len(self.__neighbours) > 0:
                             for i in self.__neighbours:
                                 if not (i in self.__visitedCells):
@@ -350,7 +362,7 @@ class DepthFirst(SolveAlgorithm):
             self.__visitedCells = []
             while len(self.__stack) > 0:
                 self.__currentCell = self.__stack.pop()
-                self.__visitedCells.append(self.__currentCell)
+                self.__visitedCells.append([self.__currentCell, self.__neighbours, self.__stack])
                 if self.__currentCell.getID() == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeHeight()-1):
                     path = []
                     self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1]
@@ -370,7 +382,7 @@ class DepthFirst(SolveAlgorithm):
             self.__visitedCells = []
             while len(self.__stack) > 0:
                 self.__currentCell = self.__stack.pop()
-                self.__visitedCells.append(self.__currentCell)
+                self.__visitedCells.append([self.__currentCell, self.__neighbours, self.__stack])
                 if self.__currentCell.getID() == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeHeight()-1):
                     path = []
                     self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1]
@@ -441,12 +453,11 @@ class BreadthFirst(SolveAlgorithm):
         pass
     def findValidPath(self, maze):
         self.__maze = maze
-        #if self.__maze.getMazeType() == "square":
         self.__queue = [self.__maze.getGrid()[0][0]]
         self.__visitedCells = []
         while len(self.__queue) > 0:
             self.__currentCell = self.__queue.pop(0)
-            self.__visitedCells.append(self.__currentCell)
+            self.__visitedCells.append([self.__currentCell, self.__neighbours, self.__queue])
             if self.__currentCell.getID() == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeHeight() - 1):
                 path = []
                 self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][-1]
@@ -527,7 +538,6 @@ class Sidewinder(GenAlgorithm):
                     self.__current_run.append(cell)
                     end_run = False
                     connect_left = False
-                    
                     if x == self.__maze.getMazeWidth() - 1:
                         # If it's the last cell in the row, end the run
                         end_run = True
