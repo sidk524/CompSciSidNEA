@@ -415,8 +415,8 @@ class UI():
     
     def generatePerformanceMetrics(self):
         self.__solutionLength = len(self.maze.getSolution())
-        self.__optimalityScore = (self.__solutionLength - self.__incorrect_moves) / self.__solutionLength
-        self.__movesPerSecond = sum(self.__cellTimes) / len(self.__cellTimes)
+        self.__optimalityScore =  self.__solutionLength / (self.__solutionLength + self.__incorrect_moves)
+        self.__movesPerSecond = len(self.__cellTimes) / sum(self.__cellTimes) 
     
     def updateMovesPerSecond(self):
         self.__cellTimes.append(time.time() - self.__CellTime)
@@ -426,9 +426,9 @@ class UI():
         return self.PSUEDOCODE[self.TITLE_DICT[solve_algorithm]]
 
     def getProgramStateText(self):
-        self.__currentNeighbours, self.__currentStackQueue = self.__maze.getProgramState(self.__current_cell)
+        self.__currentNeighbours, self.__currentStackQueue = self.maze.getProgramState(self.__current_cell)
         self.__currentNeighboursText = "Current neighbours: " + str(self.__currentNeighbours)
-        if self.__maze.getSolveAlgorithmName() == "depth_first":
+        if self.maze.getSolveAlgorithmName() == "depth_first":
             self.__currentStackQueueText = "Current stack: " + str(self.__currentStackQueue)
         else:
             self.__currentStackQueueText = "Current queue: " + str(self.__currentStackQueue)
@@ -562,107 +562,41 @@ class UI():
             
             self.cell_hover()
             pg.display.flip()
-            if self.maze.getMazeType() == "square":
-                for event in pg.event.get():
-                    if event.type == pg.QUIT:
-                        self.__running = False
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    self.__running = False
 
-                    elif event.type == pg.MOUSEBUTTONDOWN:
-                        x, y = pg.mouse.get_pos()
-                        if x < self.__maze_width:
-                            self.__clicked_cell = self.cell_hover(clicked=True)
-                            print(self.__clicked_cell)
-                            if self.__clicked_cell != None:
-                                self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID(), self.__current_cell)
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    x, y = pg.mouse.get_pos()
+                    if x < self.__maze_width:
+                        self.__clicked_cell = self.cell_hover(clicked=True)
+                        print(self.__clicked_cell)
+                        if self.__clicked_cell != None:
+                            self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID(), self.__current_cell)
 
-                                if self.__solve_step_return_value == "end":
-                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
-                                    self.displayMaze()
-                                    
-                                    print("Congratulations! You solved the maze!")
-                                    self.__running = False
-                                    self.displayMaze()
-                                    return True
-                                elif self.__solve_step_return_value == "invalid_move":
-                                    print("Invalid move!")
-                                elif self.__solve_step_return_value == "wrong_move":
-                                    print("Wrong move!")
-                                    self.__incorrect_moves += 1
-                                else:
-                                    self.__current_cell = self.__solve_step_return_value
-                                    self.__show_hint = False
-                                    self.__show_distance_map = False
-                                    self.__distanceMap = None
-                                self.updateMovesPerSecond()
-                        else:
-                            print("Invalid move!")
-                self.__screen.fill(self.WHITE)
-            elif self.maze.getMazeType() == "hexagonal":
-                for event in pg.event.get():
-                    if event.type == pg.QUIT:
-                        self.__running = False
-                    
-                    elif event.type == pg.MOUSEBUTTONDOWN:
-                        x, y = pg.mouse.get_pos()
-                        if x < self.__maze_width:
-                            self.__clicked_cell = self.cell_hover(clicked=True)
-                            print(self.__clicked_cell)
-                            if self.__clicked_cell != None:
-                                self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID() , self.__current_cell)
-                                if self.__solve_step_return_value == "end":
-                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][len(self.maze.getGrid()[self.maze.getMazeHeight()-1])-1]
-                                    
-                                    print("Congratulations! You solved the maze!")
-                                    self.__running = False
-                                    self.displayMaze()
-                                    return True
-                                elif self.__solve_step_return_value == "invalid_move":
-                                    print("Invalid move!")
-                                elif self.__solve_step_return_value == "wrong_move":
-                                    print("Wrong move!")
-                                    self.__incorrect_moves += 1
-
-                                else:
-                                    self.__current_cell = self.__solve_step_return_value
-                                    self.__show_hint = False
-                                    self.__show_distance_map = False
-                                    self.__distanceMap = None
-                            else:
+                            if self.__solve_step_return_value == "end":
+                                self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
+                                self.displayMaze()
+                                
+                                print("Congratulations! You solved the maze!")
+                                self.__running = False
+                                self.displayMaze()
+                                return True
+                            elif self.__solve_step_return_value == "invalid_move":
                                 print("Invalid move!")
-                self.__screen.fill(self.WHITE)
-            elif self.maze.getMazeType() == "triangular":
-                for event in pg.event.get():
-                    if event.type == pg.QUIT:
-                        self.__running = False
-                    elif event.type == pg.MOUSEBUTTONDOWN:
-                        x, y = pg.mouse.get_pos()
-                        if x < self.__maze_width:
-                            self.__clicked_cell = self.cell_hover(clicked=True)
-                            print(self.__clicked_cell)
-                            if self.__clicked_cell != None:
-                                self.__solve_step_return_value = self.maze.solve_step(self.__clicked_cell.getID() , self.__current_cell)
-                                if self.__solve_step_return_value == "end":
-                                    self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][len(self.maze.getGrid()[self.maze.getMazeHeight()-1])-1]
-                                    
-                                    print("Congratulations! You solved the maze!")
-                                    self.__running = False
-                                    self.displayMaze()
-
-                                    return True
-                                elif self.__solve_step_return_value == "invalid_move":
-                                    print("Invalid move!")
-                                elif self.__solve_step_return_value == "wrong_move":
-                                    print("Wrong move!")
-                                    self.__incorrect_moves += 1
-                                else:
-                                    self.__current_cell = self.__solve_step_return_value
-                                    self.__show_hint = False
-                                    self.__show_distance_map = False
-                                    self.__distanceMap = None
+                            elif self.__solve_step_return_value == "wrong_move":
+                                print("Wrong move!")
+                                self.__incorrect_moves += 1
                             else:
-                                print("Invalid move!")
-                self.__screen.fill(self.WHITE)
-            
+                                self.__current_cell = self.__solve_step_return_value
+                                self.__show_hint = False
+                                self.__show_distance_map = False
+                                self.__distanceMap = None
+                            self.updateMovesPerSecond()
+                    else:
+                        print("Invalid move!")
+            self.__screen.fill(self.WHITE)
+
     def quitPygame(self):
         self.generatePerformanceMetrics()
         self.__summary_stats = {
@@ -725,6 +659,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         initial_width = self.desktopWidth * 0.7  # 70% of the desktop width
         initial_height = self.desktopHeight * 0.7  
         self.resize(initial_width, initial_height)
+
         # Main Layout
         mainLayout = QtWidgets.QGridLayout(self.centralwidget)
 
@@ -770,6 +705,11 @@ class Ui_MazeSolveWindow(QMainWindow):
         summaryLayout.addWidget(self.timeTakenLabel)
         summaryLayout.addWidget(self.incorrectMovesLabel)
         summaryLayout.addWidget(self.hintsUsedLabel)
+
+        # Add labels to state layout
+        stateLayout = QtWidgets.QVBoxLayout(self.States)
+        stateLayout.addWidget(self.programStateLabel)
+    
 
         pseudoLayout = QtWidgets.QVBoxLayout(self.pseudocodeBox)
         pseudoLayout.addWidget(self.pseudocodeLabel)
