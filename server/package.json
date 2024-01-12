@@ -1,0 +1,12 @@
+{
+  "name": "compsci_sid_nea_centralised_server",
+  "version": "1.0.0",
+  "description": "Server for CompSciMazeMaster",
+  "main": "index.js",
+  "scripts": {
+    "test": "test",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

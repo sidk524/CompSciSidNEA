@@ -111,7 +111,6 @@ class Maze:
             gen += 1
         self.__validPath, self.__programStates = self.__curr
         self.__algorithm_route = [s[0] for s in self.__programStates]
-        print(self.__programStates)
 
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
 
@@ -453,7 +452,6 @@ class BreadthFirst(SolveAlgorithm):
             else:
                 return "invalid_move"
         elif self.__maze.getMazeType() == "hexagonal":
-            print(self.__clicked_cell_id)
             if not(self.__clicked_cell_id[0] < 0 or self.__clicked_cell_id[0] >= len(self.__maze.getGrid()[self.__clicked_cell_id[1]]) or self.__clicked_cell_id[1] < 0 or self.__clicked_cell_id[1] >= self.__maze.getMazeHeight()):
                 self.__algorithm_route_current_cell_index = self.__maze.getAlgorithmRoute().index(self.__current_cell)
                 if self.__clicked_cell_id in self.__maze.getAlgorithmRouteIDs():

@@ -9,8 +9,9 @@ import random
 import time
 import datetime
 import os
+from screeninfo import get_monitors
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow, QWidget, QDialog, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
 
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import QTimer
@@ -45,6 +46,11 @@ class UI():
         "Depth First Search": "1. Add the starting cell to the stack\n2. While the stack is not empty:\n\t3. Remove the first cell from the stack\n\t4. If the cell is the end cell, return the path\n\t5. For each neighbour of the cell:\n\t\t6. If the neighbour has not been visited:\n\t\t\t7. Add the neighbour to the stack\n\t\t\t8. Set the neighbour's parent to be the current cell\n9. Return that no path exists",
         "Manual solve": ""
     }
+
+    DESKTOP_WIDTH = get_monitors()[0].width
+    DESKTOP_HEIGHT = get_monitors()[0].height
+
+    
 
     def __init__(self):
         self.__maze = None
@@ -225,7 +231,7 @@ class UI():
         # draw a white line between the two cells
         self.__cell1_x, self.__cell1_y = x, y
         self.__cell2_x, self.__cell2_y = cell2.getID()
-        self.__cell2_x, self.__cell2_y = (self.__cell2_x * self.__cell_width) + offsetWidth + (self.__cell_width/2) , self.__cell2_y * self.__cell_height  + self.__cell_width/2 + offsetHeight
+        self.__cell2_x, self.__cell2_y = (self.__cell2_x * self.__cell_width) + offsetWidth + (self.__cell_width/2) , self.__cell2_y * self.__cell_height  + self.__cell_height/2 + offsetHeight
         
 
         if cell2.getID()[1] % 2 == 1:
@@ -363,14 +369,14 @@ class UI():
 
     def showHint(self):
         self.__hint_cell = self.maze.getHint(self.__current_cell)
-        print(self.__hint_cell)
         if not self.__show_hint:
             self.__hints_used += 1
         self.__show_hint = True
         if self.__hint_cell != None:
             self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
         else:
-            print("No hint available!")
+            self.dialog = Ui_Dialog("There are no hints available for this maze. Try solving it yourself!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+            self.dialog.show()
 
     def getHintsUsed(self):
         return self.__hints_used
@@ -468,7 +474,7 @@ class UI():
             self.__points = []
             self.__offsetWidth = self.__maze_width*0.025
             self.__offsetHeight = self.__maze_height*0.025
-            self.__cell_width = ((self.__maze_width*0.9) / self.maze.getMazeWidth())
+            self.__cell_width = ((self.__maze_width*0.95) / self.maze.getMazeWidth())
             self.__cell_side_length =  2*((self.__cell_width / 2) / math.tan(math.pi / 3))
             self.__cell_height = (self.__cell_side_length * 2) - (self.__cell_side_length / 2)
             self.__current_cell_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__offsetWidth
@@ -482,7 +488,7 @@ class UI():
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
             self.highlightVisitedCells()
              
-            self.drawHexagon(self.__current_cell_x, self.__current_cell_y+3, self.__cell_side_length, self.CHARACTERCOLOUR, character=True, fill=True)
+            self.drawHexagon(self.__current_cell_x, self.__current_cell_y, self.__cell_side_length, self.CHARACTERCOLOUR, character=True, fill=True)
            
             
             for y in range(self.maze.getMazeHeight()):
@@ -490,7 +496,7 @@ class UI():
                     
                     cell = self.maze.getGrid()[y][x]
                     self.__curr_x =  (x * self.__cell_width) + (self.__cell_width/2)  + self.__offsetWidth
-                    self.__curr_y = (y * (self.__cell_height)) + (self.__cell_width/2)  + self.__offsetHeight
+                    self.__curr_y = (y * (self.__cell_height)) + (self.__cell_height/2)  + self.__offsetHeight
                     if y % 2 == 1:
                         self.__curr_x += 0.5 * self.__cell_width
                         
@@ -570,7 +576,6 @@ class UI():
                     x, y = pg.mouse.get_pos()
                     if x < self.__maze_width:
                         self.__clicked_cell = self.cell_hover(clicked=True)
-                        print(self.__clicked_cell)
                         if self.__clicked_cell != None:
                             self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID(), self.__current_cell)
 
@@ -578,14 +583,15 @@ class UI():
                                 self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
                                 self.displayMaze()
                                 
-                                print("Congratulations! You solved the maze!")
                                 self.__running = False
                                 self.displayMaze()
                                 return True
                             elif self.__solve_step_return_value == "invalid_move":
-                                print("Invalid move!")
+                                self.dialog = Ui_Dialog("Invalid move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+                                self.dialog.show()
                             elif self.__solve_step_return_value == "wrong_move":
-                                print("Wrong move!")
+                                self.dialog = Ui_Dialog("Wrong Move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+                                self.dialog.show()
                                 self.__incorrect_moves += 1
                             else:
                                 self.__current_cell = self.__solve_step_return_value
@@ -594,7 +600,9 @@ class UI():
                                 self.__distanceMap = None
                             self.updateMovesPerSecond()
                     else:
-                        print("Invalid move!")
+                        self.dialog = Ui_Dialog("Please click inside the maze!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+                        self.dialog.show()
+                        
             self.__screen.fill(self.WHITE)
 
     def quitPygame(self):
@@ -660,6 +668,27 @@ class Ui_MazeSolveWindow(QMainWindow):
         initial_height = self.desktopHeight * 0.7  
         self.resize(initial_width, initial_height)
 
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.setMenuBar(self.menubar)
+
+        self.menuHelp = QtWidgets.QMenu("Help", self)
+        self.menuExit = QtWidgets.QMenu("Exit", self)
+
+        # Adding actions to the menus
+        self.actionAbout = QtWidgets.QAction("About", self)
+        self.actionExit = QtWidgets.QAction("Exit", self)
+
+        self.menuHelp.addAction(self.actionAbout)
+        self.menuExit.addAction(self.actionExit)
+
+        self.menubar.addMenu(self.menuHelp)
+        self.menubar.addMenu(self.menuExit)
+
+        # Connect actions to slots
+        self.actionAbout.triggered.connect(self.about_action_triggered)
+        self.actionExit.triggered.connect(self.exit_action_triggered)
+
+    
         # Main Layout
         mainLayout = QtWidgets.QGridLayout(self.centralwidget)
 
@@ -669,54 +698,46 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.summaryBox = QGroupBox("Summary", self.centralwidget)
         self.pseudocodeBox = QGroupBox("Psuedocode", self.centralwidget)
 
-        # Add GroupBoxes to layout
-        mainLayout.addWidget(self.States, 1, 0, 1, 1)
-        mainLayout.addWidget(self.actionsBox, 0, 1, 1, 1)
-        mainLayout.addWidget(self.summaryBox, 1, 1, 1, 1)
-        mainLayout.addWidget(self.pseudocodeBox, 0, 0, 1, 1)
-
+    # Conditionally hide pseudocode and program state group boxes based on maze type
+        if self.solveAlgorithm == "manual":
+            self.States.setVisible(False)
+            self.pseudocodeBox.setVisible(False)
+            # Make the other two boxes take up the entire window
+            mainLayout.addWidget(self.actionsBox, 0, 0, 1, 2)  # Span 2 columns
+            mainLayout.addWidget(self.summaryBox, 1, 0, 1, 2)  # Span 2 columns
+        else:
+            # The regular layout if not 'manual'
+            mainLayout.addWidget(self.States, 1, 0, 1, 1)
+            mainLayout.addWidget(self.actionsBox, 0, 1, 1, 1)
+            mainLayout.addWidget(self.summaryBox, 1, 1, 1, 1)
+            mainLayout.addWidget(self.pseudocodeBox, 0, 0, 1, 1)
+        
         # Buttons
-        self.showHintButton = QPushButton("Show Hint", self.actionsBox)
+
         self.showDistanceMapButton = QPushButton("Show Distance Map", self.actionsBox)
         self.showSolutionButton = QPushButton("Show solution", self.actionsBox)
         self.quitButton = QPushButton("Quit", self.actionsBox)
 
-        self.showHintButton.clicked.connect(lambda: self.showHint())
         self.showDistanceMapButton.clicked.connect(lambda: self.showDistanceMap())
         self.showSolutionButton.clicked.connect(lambda: self.showSolution())
         self.quitButton.clicked.connect(lambda: self.quitSolving())
 
         # Add Buttons to layout
         actionLayout = QtWidgets.QVBoxLayout(self.actionsBox)
-        actionLayout.addWidget(self.showHintButton)
         actionLayout.addWidget(self.showDistanceMapButton)
         actionLayout.addWidget(self.showSolutionButton)
         actionLayout.addWidget(self.quitButton)
 
         # Labels
+       
         self.timeTakenLabel = QLabel("Time: 0s", self.summaryBox)
-        self.incorrectMovesLabel = QLabel("Incorrect Moves: 0", self.summaryBox)
-        self.hintsUsedLabel = QLabel("Hints used: 0", self.summaryBox)
-        self.pseudocodeLabel = QLabel(self.getPseudocode(self.solveAlgorithm), self.pseudocodeBox)
-        self.programStateLabel = QLabel("State", self.States)
 
         # Add Labels to layout
         summaryLayout = QtWidgets.QVBoxLayout(self.summaryBox)
         summaryLayout.addWidget(self.timeTakenLabel)
-        summaryLayout.addWidget(self.incorrectMovesLabel)
-        summaryLayout.addWidget(self.hintsUsedLabel)
+        
 
-        # Add labels to state layout
-        stateLayout = QtWidgets.QVBoxLayout(self.States)
-        stateLayout.addWidget(self.programStateLabel)
-    
 
-        pseudoLayout = QtWidgets.QVBoxLayout(self.pseudocodeBox)
-        pseudoLayout.addWidget(self.pseudocodeLabel)
-
-        self.incorrect_moves_timer = QTimer(self)
-        self.incorrect_moves_timer.timeout.connect(lambda: self.updateIncorrectMoves())
-        self.incorrect_moves_timer.start(500) 
 
         self.hide_distance_map_timer = QTimer(self)
         self.hide_distance_map_timer.timeout.connect(lambda: self.getDistanceMapStatus())
@@ -726,9 +747,35 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.get_time_taken_timer.timeout.connect(lambda: self.getTimeTaken())
         self.get_time_taken_timer.start(1000)
 
-        self.update_program_state_timer = QTimer(self)
-        self.update_program_state_timer.timeout.connect(lambda: self.getProgramState())
-        self.update_program_state_timer.start(1000)
+        if self.solveAlgorithm != "manual":
+            self.incorrectMovesLabel = QLabel("Incorrect Moves: 0", self.summaryBox)
+            self.hintsUsedLabel = QLabel("Hints used: 0", self.summaryBox)
+
+            summaryLayout.addWidget(self.incorrectMovesLabel)
+            summaryLayout.addWidget(self.hintsUsedLabel)
+
+            self.pseudocodeLabel = QLabel(self.getPseudocode(self.solveAlgorithm), self.pseudocodeBox)
+            self.programStateLabel = QLabel("State", self.States)
+
+            self.showHintButton = QPushButton("Show Hint", self.actionsBox)
+            self.showHintButton.clicked.connect(lambda: self.showHint())
+
+            self.update_program_state_timer = QTimer(self)
+            self.update_program_state_timer.timeout.connect(lambda: self.getProgramState())
+            self.update_program_state_timer.start(1000)
+
+            self.incorrect_moves_timer = QTimer(self)
+            self.incorrect_moves_timer.timeout.connect(lambda: self.updateIncorrectMoves())
+            self.incorrect_moves_timer.start(500) 
+                    # Add labels to state layout
+            stateLayout = QtWidgets.QVBoxLayout(self.States)
+            stateLayout.addWidget(self.programStateLabel)
+        
+            pseudoLayout = QtWidgets.QVBoxLayout(self.pseudocodeBox)
+            pseudoLayout.addWidget(self.pseudocodeLabel)
+
+            actionLayout.addWidget(self.showHintButton)
+
 
         self.resizeEvent = self.onResize
 
@@ -738,24 +785,36 @@ class Ui_MazeSolveWindow(QMainWindow):
         font = QtGui.QFont()
         font.setPointSize(base_font_size)
         font.setUnderline(True)
-
-        self.States.setFont(font)
+        
         self.actionsBox.setFont(font)
         self.summaryBox.setFont(font)
-        self.pseudocodeBox.setFont(font)
 
         font.setPointSize(base_font_size * 0.6)  # Adjust for smaller font
         font.setUnderline(False)
-        self.showHintButton.setFont(font)
+        
         self.showDistanceMapButton.setFont(font)
         self.showSolutionButton.setFont(font)
         self.quitButton.setFont(font)
         self.timeTakenLabel.setFont(font)
-        self.incorrectMovesLabel.setFont(font)
-        self.hintsUsedLabel.setFont(font)
-        self.pseudocodeLabel.setFont(font)
+       
+        if self.solveAlgorithm != "manual":
+
+            self.pseudocodeBox.setFont(font)
+            self.States.setFont(font)
+            self.showHintButton.setFont(font)
+            self.incorrectMovesLabel.setFont(font)
+            self.hintsUsedLabel.setFont(font)
+            self.pseudocodeLabel.setFont(font)
+
 
         super(Ui_MazeSolveWindow, self).resizeEvent(event)
+
+
+    def about_action_triggered(self):
+        pass
+
+    def exit_action_triggered(self):
+        sys.exit()
 
     def getPseudocode(self, algorithm):
         return self.UIinstance.getPseudocodeText(algorithm)
@@ -777,9 +836,14 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.UIinstance.updatePygame():
             self.pygame_timer.stop()
             self.hide_distance_map_timer.stop()
-            self.incorrect_moves_timer.stop()
             self.get_time_taken_timer.stop()
+            
             self.__summaryStats = self.UIinstance.quitPygame()
+
+            if self.solveAlgorithm != "manual":
+                self.update_program_state_timer.stop()
+                self.incorrect_moves_timer.stop()
+                
             self.hide()
             self.NextWindow = Ui_DialogMazeSolved(self.desktopWidth, self.desktopHeight, self.__summaryStats, self.UIinstance)
             self.NextWindow.show()
@@ -816,11 +880,14 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.timeTakenLabel.setText("Time: " + str(int(self.UIinstance.getTimeTaken())) + "s")
 
     def quitSolving(self):
+        if self.solveAlgorithm != "manual":
+            self.incorrect_moves_timer.stop()
+            self.update_program_state_timer.stop()
+
         self.pygame_timer.stop()
         self.hide_distance_map_timer.stop()
-        self.incorrect_moves_timer.stop()
         self.get_time_taken_timer.stop()
-        self.UIinstance.quitPygame()
+        self.UIinstance.closeProgram()
         self.hide()
         self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
         self.BackWindow.show()
@@ -868,7 +935,7 @@ class Ui_DialogMazeSolved(QMainWindow):
         self.incorrectMovesLabel = QLabel(f"Incorrect Moves: {self.__summaryStats['incorrect_moves']}", self.summaryGroupBox)
         self.optimalityScoreLabel = QLabel(f"Optimality Score: {(self.__summaryStats['optimality_score']*100):.2f}%", self.summaryGroupBox)
         self.movesPerSecondLabel = QLabel(f"Moves Per Second: {self.__summaryStats['moves_per_second']:.2f}", self.summaryGroupBox)
-        self.solutionLengthLabel = QLabel(f"Solution Length: {self.__summaryStats['solution_length']}", self.summaryGroupBox)
+        self.solutionLengthLabel = QLabel(f"Optimal Solution Length: {self.__summaryStats['solution_length']}", self.summaryGroupBox)
 
         summaryLayout.addWidget(self.timeTakenLabel)
         summaryLayout.addWidget(self.hintsUsedLabel)
@@ -945,7 +1012,8 @@ class Ui_DialogMazeSolved(QMainWindow):
         self.BackWindow.show()
 
     def downloadMaze(self):
-        self.__UIinstance.downloadMaze()
+        if not self.__UIinstance.downloadMaze():
+            self.errorDialog = Ui_Dialog("Error downloading maze! Try again.")
 
         #ERROR HANDLE THE MAZE DOWNLOAD HERE.
 
@@ -954,9 +1022,6 @@ class TerminalUI():
     def __init__(self):
         pass    
 
-    def Hello_world(self):
-        print("Hello world!")
-    
     def run(self):
         self.__gen_algorithms = ["sidewinder", "binary_tree"]
         self.__solve_algorithms = ["depth_first", "breadth_first", "manual"]
@@ -1005,7 +1070,6 @@ class Ui_MainMenu(QMainWindow):
         self.setupUi(self.desktopWidth, self.desktopHeight)
 
     def setupUi(self, desktopWidth, desktopHeight):
-        
         self.resize(desktopWidth*0.6, desktopHeight*0.6)
         
         self.setObjectName("MainMenu")
@@ -1041,18 +1105,26 @@ class Ui_MainMenu(QMainWindow):
         self.centralwidget.setLayout(layout)
 
         self.menubar = QtWidgets.QMenuBar(self)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, desktopWidth*0.8, 21))
-        self.menubar.setObjectName("menubar")
-        self.menuHelp = QtWidgets.QMenu(self.menubar)
-        self.menuHelp.setObjectName("menuHelp")
-        self.menuExt = QtWidgets.QMenu(self.menubar)
-        self.menuExt.setObjectName("menuExt")
         self.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(self)
-        self.statusbar.setObjectName("statusbar")
-        self.setStatusBar(self.statusbar)
-        self.menubar.addAction(self.menuHelp.menuAction())
-        self.menubar.addAction(self.menuExt.menuAction())
+
+        self.menuHelp = QtWidgets.QMenu("Help", self)
+        self.menuExit = QtWidgets.QMenu("Exit", self)
+
+        # Adding actions to the menus
+        self.actionAbout = QtWidgets.QAction("About", self)
+        self.actionExit = QtWidgets.QAction("Exit", self)
+
+        self.menuHelp.addAction(self.actionAbout)
+        self.menuExit.addAction(self.actionExit)
+
+        self.menubar.addMenu(self.menuHelp)
+        self.menubar.addMenu(self.menuExit)
+
+        # Connect actions to slots
+        self.actionAbout.triggered.connect(self.about_action_triggered)
+        self.actionExit.triggered.connect(self.exit_action_triggered)
+
+        
 
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -1063,13 +1135,19 @@ class Ui_MainMenu(QMainWindow):
         self.TitleLabel.setText(_translate("MainMenu", "CompSci Maze Master"))
         self.StartButton.setText(_translate("MainMenu", "Generate New Maze"))
         self.menuHelp.setTitle(_translate("MainMenu", "Help"))
-        self.menuExt.setTitle(_translate("MainMenu", "Exit"))
+        self.menuExit.setTitle(_translate("MainMenu", "Exit"))
         self.StartButton.clicked.connect(self.StartButton_clicked)
 
     def StartButton_clicked(self):
         self.hide()
         self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight)
         self.ForwardWindow.show()
+
+    def about_action_triggered(self):
+        pass
+
+    def exit_action_triggered(self):
+        sys.exit()
 
 class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
     def __init__(self, desktopWidth, desktopHeight):
@@ -1167,20 +1245,28 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         layout.addWidget(self.GenerateMazeButton, 0, QtCore.Qt.AlignCenter)
 
         # Menu and status bar setup
-        self.menubar = QtWidgets.QMenuBar(self)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
-        self.menubar.setObjectName("menubar")
-        self.menuHelp = QtWidgets.QMenu(self.menubar)
-        self.menuHelp.setObjectName("menuHelp")
-        self.menuExit = QtWidgets.QMenu(self.menubar)
-        self.menuExit.setObjectName("menuExit")
-        self.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(self)
-        self.statusbar.setObjectName("statusbar")
-        self.setStatusBar(self.statusbar)
-        self.menubar.addAction(self.menuHelp.menuAction())
-        self.menubar.addAction(self.menuExit.menuAction())
 
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.setMenuBar(self.menubar)
+
+        self.menuHelp = QtWidgets.QMenu("Help", self)
+        self.menuExit = QtWidgets.QMenu("Exit", self)
+
+        # Adding actions to the menus
+        self.actionAbout = QtWidgets.QAction("About", self)
+        self.actionExit = QtWidgets.QAction("Exit", self)
+
+        self.menuHelp.addAction(self.actionAbout)
+        self.menuExit.addAction(self.actionExit)
+
+        self.menubar.addMenu(self.menuHelp)
+        self.menubar.addMenu(self.menuExit)
+
+        # Connect actions to slots
+        self.actionAbout.triggered.connect(self.about_action_triggered)
+        self.actionExit.triggered.connect(self.exit_action_triggered)
+
+        
         # Set layout to central widget
         self.centralwidget.setLayout(layout)
 
@@ -1219,13 +1305,19 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
     def MazeSizeSliderX_valueChanged(self):
         self.MazeSizeTextX.setText("Maze Width: " + str(self.MazeSizeSliderX.value()))
 
-
     def MazeSizeSliderY_valueChanged(self):
         self.MazeSizeTextY.setText("Maze Height: " + str(self.MazeSizeSliderY.value()))
+
     def BackButton_clicked(self):
         self.hide()
         self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
         self.BackWindow.show()
+
+    def about_action_triggered(self):
+        pass
+
+    def exit_action_triggered(self):
+        sys.exit()
 
     def GenerateMazeButton_clicked(self):
         if self.SidewinderRadioButton.isChecked():
@@ -1258,9 +1350,8 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.ForwardWindow.show()
         else:
             self.Dialog = QtWidgets.QDialog()
-            self.error = Ui_Dialog()
-            self.error.setupUi(self.Dialog, self.desktopWidth, self.desktopHeight)
-            self.Dialog.show()
+            self.error = Ui_Dialog("Please select all options!", self.desktopWidth, self.desktopHeight)
+            self.error.show()
         self.mazeConfig = [self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value()]
 
     def getMazeConfig(self):
@@ -1270,13 +1361,20 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             return None
 
 
-class Ui_Dialog(object):
-    def setupUi(self, Dialog, desktopWidth, desktopHeight):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(desktopWidth * 0.2, desktopHeight * 0.2)
+class Ui_Dialog(QDialog):
+    def __init__(self, text, desktopWidth, desktopHeight):
+        super(Ui_Dialog, self).__init__()
+        self.text = text
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("Dialog")
+        self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
 
         # Main vertical layout
-        self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setObjectName("verticalLayout")
 
         # Spacer item for vertical alignment
@@ -1284,7 +1382,7 @@ class Ui_Dialog(object):
         self.verticalLayout.addItem(self.verticalSpacer)
 
         # Label
-        self.label = QtWidgets.QLabel("Please select all options!", Dialog)
+        self.label = QtWidgets.QLabel(self.text, self)
         font = QtGui.QFont()
         font.setPointSize(10)
         self.label.setFont(font)
@@ -1297,21 +1395,19 @@ class Ui_Dialog(object):
         self.verticalLayout.addItem(self.verticalSpacer2)
 
         # Button Box
-        self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
+        self.buttonBox = QtWidgets.QDialogButtonBox(self)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.buttonBox.setLayoutDirection(QtCore.Qt.LeftToRight)  # Right-align the buttons
         self.verticalLayout.addWidget(self.buttonBox)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        QtCore.QMetaObject.connectSlotsByName(self)
+        self.retranslateUi()
+        
 
-        self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(Dialog.accept)
-        self.buttonBox.rejected.connect(Dialog.reject)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
-
-    def retranslateUi(self, Dialog):
+    def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Please select all options!"))
-
-
+        self.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label.setText(_translate("Dialog", self.text))
