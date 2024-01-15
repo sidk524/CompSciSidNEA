@@ -14,8 +14,6 @@ import re
 import json
 import requests
 import asyncio
-import qasync
-import websockets
 from screeninfo import get_monitors
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebSockets
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow, QWidget, QDialog, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
@@ -682,7 +680,7 @@ class UI():
         pass
 
 class Ui_MazeSolveWindow(QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeWidth, mazeHeight, LANInstance=None, online=False):
+    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeWidth, mazeHeight, mazeGrid=None, LANInstance=None, online=False):
         super(Ui_MazeSolveWindow, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
@@ -693,6 +691,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.mazeWidth = mazeWidth
         self.mazeHeight = mazeHeight
         self.LANInstance = LANInstance
+        self.mazeGrid = mazeGrid
         self.online = online
         self.setWindowTitle("CompSci Maze Master")
         self.setupUi()
@@ -850,7 +849,27 @@ class Ui_MazeSolveWindow(QMainWindow):
 
         super(Ui_MazeSolveWindow, self).resizeEvent(event)
 
+    def mazeToJSON(self, maze):
+        mazeDict = {
+            "maze_type": maze.getMazeType(),
+            "maze_width": maze.getMazeWidth(),
+            "maze_height": maze.getMazeHeight(),
+            "gen_algorithm": maze.getGenAlgorithmName(),
+            "solve_algorithm": maze.getSolveAlgorithmName(),
+            "grid": []
+        }
 
+        for y in range(maze.getMazeHeight()):
+            mazeDict["grid"].append([])
+            for x in range(len(maze.getGrid()[y])):
+                cell = maze.getGrid()[y][x]
+                cellDict = {
+                    "id": cell.getID(),
+                    "connections": [str(c) for c in cell.getConnections()]
+                }
+                mazeDict["grid"][y].append(cellDict)
+
+        return mazeDict
     def about_action_triggered(self):
         pass
 
@@ -859,14 +878,18 @@ class Ui_MazeSolveWindow(QMainWindow):
 
     def getPseudocode(self, algorithm):
         return self.UIinstance.getPseudocodeText(algorithm)
-    
+
     def getProgramState(self):
         self.__currentNeighboursText, self.__currentStackQueueText, self.__currentCellText = self.UIinstance.getProgramStateText()
         self.programStateLabel.setText(self.__currentCellText + "\n" + self.__currentNeighboursText + "\n" + self.__currentStackQueueText)
 
     def startPygameLoop(self):
+        if self.mazeGrid != None:
+            self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight, grid=self.mazeGrid)
         self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
         self.maze.generate()
+        if self.online and self.mazeGrid == None:
+            self.LANInstance.sendMaze(self.mazeToJSON(self.maze))
         self.UIinstance.initPygame(self.maze)
 
         self.pygame_timer = QTimer(self)
@@ -1289,6 +1312,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         mazeTypeLayout.addStretch(1)
         self.MazeTypeContainer.setLayout(mazeTypeLayout)
         groupBoxLayout.addWidget(self.MazeTypeContainer)
+
         # MazeSizeSliderX and MazeSizeText
         self.MazeSizeSliderX = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
         self.MazeSizeSliderX.setMinimum(5)
@@ -1650,9 +1674,10 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 else:
                     self.errorDialog = Ui_Dialog("Error rejecting game! Try again.")
                     self.errorDialog.show()
-            elif message_data["type"] == "MazeConfig":
+            elif message_data["type"] == "maze":
                 self.hide()
-                self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["mazeConfig"][0], message_data["mazeConfig"][1], message_data["mazeConfig"][2], message_data["mazeConfig"][3], message_data["mazeConfig"][4], self, online=True)
+                message_data = message_data["maze"]
+                self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], message_data['grid'], self, online=True)
                 self.ForwardWindow.show()
 
 
@@ -1683,9 +1708,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def getOpponentName(self):
         return self.opponent
 
-    def sendMazeConfig(self, mazeConfig):
-        self.sendWebSocketMessage({"type": "sendMazeConfig", "user": self.username, "opponent": self.opponent, "mazeConfig": mazeConfig})
-
+    def sendMaze(self, maze):
+        self.sendWebSocketMessage({"type": "sendMaze", "user": self.username, "opponent": self.opponent, "maze": maze})
 
     def resizeEvent(self, event):
         QtWidgets.QMainWindow.resizeEvent(self,event)
