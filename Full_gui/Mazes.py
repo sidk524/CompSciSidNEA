@@ -15,7 +15,7 @@ class Cell:
 
 
     def addConnection(self, cell):
-        if len(self.__connections) < self.__maxConnections and not (cell in self.__connections):
+        if len(self.__connections) < self.__maxConnections and not (cell in self.__connections) and self.getID() != cell.getID():
             self.__connections.append(cell)
             cell.addConnection(self)
        
@@ -109,6 +109,7 @@ class Maze:
             self.__genAlgorithm.generate(self)
             self.__curr = self.__solveAlgorithm.findValidPath(self)
             gen += 1
+        print(gen)
         self.__validPath, self.__programStates = self.__curr
         self.__algorithm_route = [s[0] for s in self.__programStates]
 
@@ -290,7 +291,7 @@ class Manual(SolveAlgorithm):
         pass
 
     def findValidPath(self, maze):
-        return AlgorithmFactory("sidewinder", "depth_first").getSolveAlgorithm().findValidPath(maze)
+        return AlgorithmFactory("sidewinder", "breadth_first").getSolveAlgorithm().findValidPath(maze)
 
     def solve_step(self, maze, clicked_cell_id, current_cell):
         self.__maze = maze
@@ -337,6 +338,7 @@ class DepthFirst(SolveAlgorithm):
         self.__maze = maze
         self.__stack = [self.__maze.getGrid()[0][0]]
         self.__visitedCells = []
+        self.__potentialPaths = []
         while len(self.__stack) > 0:
             self.__currentCell = self.__stack.pop()
             self.__neighbours = self.getNeighbours(self.__currentCell, self.__maze)
@@ -344,7 +346,7 @@ class DepthFirst(SolveAlgorithm):
             self.__visitedCells.append([self.__currentCell, self.__neighbours, self.__stack.copy()])
             if self.__currentCell.getID() == (len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1, self.__maze.getMazeHeight()-1):
                 path = []
-                self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][len(self.__maze.getGrid()[self.__maze.getMazeHeight() - 1]) - 1]
+                self.__currentCell = self.__maze.getGrid()[self.__maze.getMazeHeight() - 1][-1]
                 while self.__currentCell != None:
                     path.append(self.__currentCell)
                     self.__currentCell = self.__currentCell.getParent()
@@ -355,6 +357,7 @@ class DepthFirst(SolveAlgorithm):
                         if not(i in [c[0] for c in self.__visitedCells]):
                             i.setParent(self.__currentCell)
                             self.__stack.append(i)
+        
         return False        
 
     def solve_step(self, maze, clicked_cell_id, current_cell):
@@ -534,27 +537,29 @@ class Sidewinder(GenAlgorithm):
                             connect_left = True
                     if end_run and y != 0:
                         chosen_cell = random.choice(self.__current_run)
-                        if chosen_cell.getID()[0] >= len(self.__maze.getGrid()[chosen_cell.getID()[1]-1]):
+                        if chosen_cell.getID()[0] >= len(self.__maze.getGrid()[chosen_cell.getID()[1]-1]) and chosen_cell.getID()[0] != 0 and chosen_cell.getID()[1] != 0:
                             chosen_cell.addConnection(self.__maze.getGrid()[chosen_cell.getID()[1]][len(self.__maze.getGrid()[chosen_cell.getID()[1]-1])])
                         elif chosen_cell.getID()[0] == 0:
                             chosen_cell.addConnection(self.__maze.getGrid()[chosen_cell.getID()[1]-1][0])
                         else:
                             x_offset = random.randint(0, 1)
-                            if y % 2 == 0:
+                            if y % 2 == 0 and not(chosen_cell.getID()[0] == 0 and x_offset == 1):
                                 chosen_cell.addConnection(self.__maze.getGrid()[chosen_cell.getID()[1]-1][chosen_cell.getID()[0]+(-1*x_offset)])
                             else:
                                 chosen_cell.addConnection(self.__maze.getGrid()[chosen_cell.getID()[1]-1][chosen_cell.getID()[0] + x_offset])
                         self.__current_run = []
-                    elif (connect_left and x < len(self.__maze.getGrid()[y]) - 1) or (y == 0 and x < len(self.__maze.getGrid()[y]) - 1): # if not the leftmost cell and decided to connect left
-
-                        cell.addConnection(self.__maze.getGrid()[y][x+1])
+                    elif (connect_left and x != 0) or (y == 0 and x != 0): # if not the leftmost cell and decided to connect left
+                    
+                        cell.addConnection(self.__maze.getGrid()[y][x-1])
+                    
             return self.__maze.getGrid()
         elif self.__maze.getMazeType() == "triangular":
             self.__maze = maze
             self.__current_run = []
             for y in range(self.__maze.getMazeHeight()):
                 self.__current_run = []
-                for x in range(0, len(self.__maze.getGrid()[y])-1):
+                for x in range(len(self.__maze.getGrid()[y])-1):
+                
                     cell = self.__maze.getGrid()[y][x]
                     self.__current_run.append(cell)
                     end_run = False
@@ -563,13 +568,12 @@ class Sidewinder(GenAlgorithm):
                         end_run = True
                     else:
                         decision = random.randint(0, 10)
-                        if decision <= 7:
+                        if decision <= 5:
                             end_run = True
                         else:
                             connect_left = True
                     if end_run and y != 0:
                         self.__x, self.__y = random.choice(self.__current_run).getID()
-                        
                         flipped = False
                         if self.__x % 2 == 1:
                             flipped = True
@@ -637,10 +641,10 @@ class BinaryTree(GenAlgorithm):
                     elif y == 0:
                         cell.addConnection(self.__maze.getGrid()[y][x-1])
                     else:
-                        decision = random.randint(0, 1)
+                        decision = random.randint(0, 2)
                         if decision == 0:
                             cell.addConnection(self.__maze.getGrid()[y][x-1])
-                        else:
+                        elif decision == 1:
                             flipped = False
                             self.__x, self.__y = cell.getID()
                             if self.__x % 2 == 1:

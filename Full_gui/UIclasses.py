@@ -9,14 +9,19 @@ import random
 import time
 import datetime
 import os
-from screeninfo import get_monitors
-from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow, QWidget, QDialog, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
-
-from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtCore import QTimer
-
 import sys
+import re
+import json
+import requests
+import asyncio
+import qasync
+import websockets
+from screeninfo import get_monitors
+from PyQt5 import QtWidgets, QtCore, QtGui, QtWebSockets
+from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow, QWidget, QDialog, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
+from PyQt5.QtCore import QTimer, QThread, QUrl
+from PyQt5.QtWebSockets import QWebSocket
+from functools import partial
 
 class UI():         
     WHITE = (255, 255, 255)
@@ -30,10 +35,7 @@ class UI():
     HINT_COLOUR = (255, 255, 0)
     CHARACTERCOLOUR = (0, 32, 235)
 
-    SQUAREMAZETHICKNESS = 6
-    HEXAGONMAZETHICKNESS = 3
-    TRIANGULARMAZETHICKNESS = 5
-
+    
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
 
     INSTRUCTIONS = {
@@ -128,7 +130,7 @@ class UI():
                             counter += 1
                         if flag:
                             break         
-                    pg.draw.rect(self.__screen, self.HOVER_COLOUR, (self.__cell.getID()[0] * self.__cell_width, self.__cell.getID()[1] * self.__cell_height, self.__cell_width, self.__cell_height), self.SQUAREMAZETHICKNESS)
+                    pg.draw.rect(self.__screen, self.HOVER_COLOUR, (self.__cell.getID()[0] * self.__cell_width, self.__cell.getID()[1] * self.__cell_height, self.__cell_width, self.__cell_height), self.__squareMazeThickness)
                     pg.mouse.set_cursor(*pg.cursors.broken_x)
                     if clicked:
                         return self.__cell
@@ -157,7 +159,7 @@ class UI():
                             counter += 1
                         if flag:
                             break                            
-                    pg.draw.polygon(self.__screen, self.HOVER_COLOUR, p, self.HEXAGONMAZETHICKNESS)
+                    pg.draw.polygon(self.__screen, self.HOVER_COLOUR, p, self.__hexagonMazeThickness)
                     pg.mouse.set_cursor(*pg.cursors.broken_x)
                     if clicked:
                         return self.__cell
@@ -183,7 +185,7 @@ class UI():
                             counter += 1
                         if flag:
                             break                            
-                    pg.draw.polygon(self.__screen, self.HOVER_COLOUR, p, self.TRIANGULARMAZETHICKNESS)
+                    pg.draw.polygon(self.__screen, self.HOVER_COLOUR, p, self.__triangularMazeThickness)
                     pg.mouse.set_cursor(*pg.cursors.broken_x)
                     if clicked:
                         return self.__cell
@@ -203,14 +205,23 @@ class UI():
     def highlightVisitedCells(self):
         for cell in self.__token_visited_cells_coords:
             if self.maze.getMazeType() == "square":
-                pg.draw.rect(self.__screen, self.HIGHLIGHT_COLOUR, (cell[0], cell[1], self.__cell_width+2, self.__cell_height+2))
+                pg.draw.rect(self.__screen, self.HIGHLIGHT_COLOUR, (cell.getID()[0] * self.__cell_width, cell.getID()[1] * self.__cell_height, self.__cell_width, self.__cell_height), 0)
+                # pg.draw.rect(self.__screen, self.HIGHLIGHT_COLOUR, (cell[0], cell[1], self.__cell_width+2, self.__cell_height+2))
                 
-
             elif self.maze.getMazeType() == "hexagonal":
-                self.drawHexagon(cell[0], cell[1]+3, self.__cell_side_length, self.HIGHLIGHT_COLOUR, character=True, fill=True)
+                self.__cell_x, self.__cell_y = cell.getID()
+                self.__cell_x, self.__cell_y = (self.__cell_x * self.__cell_width) + self.__cell_width/2 + self.__offsetWidth, self.__cell_y * self.__cell_height  + self.__cell_height/2 + self.__offsetHeight
+                if cell.getID()[1] % 2 == 1:
+                    self.__cell_x += 0.5 * self.__cell_width
+                self.drawHexagon(self.__cell_x, self.__cell_y, self.__cell_side_length, self.HIGHLIGHT_COLOUR, character=True, fill=True)
+                # self.drawHexagon(cell[0], cell[1], self.__cell_side_length, self.HIGHLIGHT_COLOUR, character=True, fill=True)
             elif self.maze.getMazeType() == "triangular":
-                
-                self.drawTriangle(cell[0], cell[1], cell[2] , cell[3], self.HIGHLIGHT_COLOUR, character=True, fill=True)
+                self.__cell_x, self.__cell_y = cell.getID()
+                self.__cell_x, self.__cell_y = (self.__cell_x * self.__cell_width) + self.__cell_width/2 , self.__cell_y * self.__cell_height  + self.__cell_height/2
+                self.__cell_base_point_1, self.__cell_base_point_2 = self.get_triangle_base_points(cell.getID()[0], cell.getID()[1])
+                self.__cell_flipped = self.getCellFlipped(cell)
+                self.drawTriangle(self.__cell_base_point_1, self.__cell_base_point_2, self.__cell_side_length, self.__cell_flipped, self.HIGHLIGHT_COLOUR, fill=True, character=True)
+                # self.drawTriangle(cell[0], cell[1], cell[2] , cell[3], self.HIGHLIGHT_COLOUR, character=True, fill=True)
 
     def drawHexagon(self, x, y, size, color=(0, 0, 0), width=0, character=False, fill=False):
         hexagon_points = []
@@ -221,7 +232,7 @@ class UI():
         if fill:
             pg.draw.polygon(self.__screen, color, hexagon_points, 0)
         else:
-            pg.draw.polygon(self.__screen, color, hexagon_points, self.HEXAGONMAZETHICKNESS)
+            pg.draw.polygon(self.__screen, color, hexagon_points, self.__hexagonMazeThickness)
         if not character:
             self.__points.append(hexagon_points)
 
@@ -232,7 +243,8 @@ class UI():
         self.__cell1_x, self.__cell1_y = x, y
         self.__cell2_x, self.__cell2_y = cell2.getID()
         self.__cell2_x, self.__cell2_y = (self.__cell2_x * self.__cell_width) + offsetWidth + (self.__cell_width/2) , self.__cell2_y * self.__cell_height  + self.__cell_height/2 + offsetHeight
-        
+
+
 
         if cell2.getID()[1] % 2 == 1:
             self.__cell2_x += 0.5 * self.__cell_width
@@ -257,7 +269,7 @@ class UI():
                 self.__start_y = self.__cell1_y - self.__cell_side_length
                 self.__end_y = self.__cell2_y + self.__cell_side_length
 
-        pg.draw.line(self.__screen, self.WHITE, (self.__start_x, self.__start_y), (self.__end_x, self.__end_y), self.HEXAGONMAZETHICKNESS)
+        pg.draw.line(self.__screen, self.WHITE, (self.__start_x, self.__start_y), (self.__end_x, self.__end_y), self.__hexagonMazeThickness)
 
     def get_triangle_base_points(self, x, y):
         
@@ -288,7 +300,7 @@ class UI():
         if fill:
             pg.draw.polygon(self.__screen, color, triangle_points, 0)
         else:
-            pg.draw.polygon(self.__screen, color, triangle_points, self.TRIANGULARMAZETHICKNESS)
+            pg.draw.polygon(self.__screen, color, triangle_points, self.__triangularMazeThickness)
         if not character and not(triangle_points in self.__points):
             
             self.__points.append(triangle_points)        
@@ -313,7 +325,7 @@ class UI():
             else:
                 line_start = cell1_base_point_2
                 line_end = cell2_base_point_1
-            pg.draw.line(self.__screen, self.WHITE, line_start, line_end, self.TRIANGULARMAZETHICKNESS)
+            pg.draw.line(self.__screen, self.WHITE, line_start, line_end, self.__triangularMazeThickness)
 
     def getCellFlipped(self, cell):
         x, y = cell.getID()
@@ -376,7 +388,7 @@ class UI():
             self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
         else:
             self.dialog = Ui_Dialog("There are no hints available for this maze. Try solving it yourself!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-            self.dialog.show()
+            self.self.show()
 
     def getHintsUsed(self):
         return self.__hints_used
@@ -456,7 +468,7 @@ class UI():
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
             pg.draw.rect(self.__screen, self.CHARACTERCOLOUR, (self.__current_cell.getID()[0] * self.__cell_width + 3, self.__current_cell.getID()[1] * self.__cell_height + 3, self.__cell_width, self.__cell_height))
-            self.__token_visited_cells_coords.append((self.__current_cell.getID()[0] * self.__cell_width, self.__current_cell.getID()[1] * self.__cell_height))
+            self.__token_visited_cells_coords.append(self.__current_cell)
             
             for y in range(self.maze.getMazeHeight()):
                 for x in range(len(self.maze.getGrid()[y])):
@@ -465,16 +477,16 @@ class UI():
                     self.__points.append(self.__curr_points)
                     if y == 0 or self.maze.getGrid()[y-1][x] not in cell.getConnections():
                         pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
-                                                    ((x+1) *  self.__cell_width, y *  self.__cell_height), self.SQUAREMAZETHICKNESS)
+                                                    ((x+1) *  self.__cell_width, y *  self.__cell_height), self.__squareMazeThickness)
                     if x == 0 or not(str(self.maze.getGrid()[y][x-1]) in [str(i) for i in cell.getConnections()]):
                         pg.draw.line(self.__screen, self.BLACK, (x *  self.__cell_width, y *  self.__cell_height), 
-                                                    (x *  self.__cell_width, (y+1) *  self.__cell_height), self.SQUAREMAZETHICKNESS)
+                                                    (x *  self.__cell_width, (y+1) *  self.__cell_height), self.__squareMazeThickness)
 
         elif self.maze.getMazeType() == "hexagonal":
             self.__points = []
             self.__offsetWidth = self.__maze_width*0.025
             self.__offsetHeight = self.__maze_height*0.025
-            self.__cell_width = ((self.__maze_width*0.95) / self.maze.getMazeWidth())
+            self.__cell_width = ((self.__maze_width*0.8) / self.maze.getMazeWidth())
             self.__cell_side_length =  2*((self.__cell_width / 2) / math.tan(math.pi / 3))
             self.__cell_height = (self.__cell_side_length * 2) - (self.__cell_side_length / 2)
             self.__current_cell_x = self.__current_cell.getID()[0] * self.__cell_width + self.__cell_width/2 + self.__offsetWidth
@@ -483,7 +495,8 @@ class UI():
             if self.__current_cell.getID()[1] % 2 == 1:
                 self.__current_cell_x += 0.5 * self.__cell_width
 
-            self.__token_visited_cells_coords.append((self.__current_cell_x, self.__current_cell_y))
+            self.__token_visited_cells_coords.append(self.__current_cell)
+
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
             self.highlightVisitedCells()
@@ -521,7 +534,7 @@ class UI():
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
         
             self.drawTriangle(self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length, self.__current_cell_flipped, self.CHARACTERCOLOUR, fill=True, character=True)
-            self.__token_visited_cells_coords.append((self.__current_cell_base_point_1, self.__current_cell_base_point_2, self.__cell_side_length ,self.__current_cell_flipped))
+            self.__token_visited_cells_coords.append(self.__current_cell)
             
             for y in range(self.maze.getMazeHeight()):
                 for x in range(len(self.maze.getGrid()[y])):
@@ -535,15 +548,25 @@ class UI():
                     for c in self.__cell_connections:
                          self.draw_triangle_connection(self.maze.getGrid()[y][x], c, self.__cell_side_length)
 
+    def scale_thickness(self):
+        self.__potentialSquareMazeThickness = list(range(1, 7))
+        self.__potentialHexagonMazeThickness = list(range(1, 4))
+        self.__potentialTriangularMazeThickness = list(range(1, 6))
+
+        self.__squareMazeThickness = self.__potentialSquareMazeThickness[::-1][min(int(self.DESKTOP_WIDTH/ self.__width)-1, len(self.__potentialSquareMazeThickness)-1)]
+        self.__hexagonMazeThickness = self.__potentialHexagonMazeThickness[::-1][min(int(self.DESKTOP_WIDTH/ self.__width)-1, len(self.__potentialHexagonMazeThickness)-1)]
+        self.__triangularMazeThickness = self.__potentialTriangularMazeThickness[::-1][min(int(self.DESKTOP_WIDTH/ self.__width)-1, len(self.__potentialTriangularMazeThickness)-1)]
+
+
     def initPygame(self, maze=None):
         pg.init()
         self.maze = maze
-
         self.__infoObject = pg.display.Info()
-
         self.__width, self.__height = self.__infoObject.current_w*0.6, self.__infoObject.current_h*0.8
+
         self.__show_distance_map = False
         self.__maze_width, self.__maze_height = self.__width, self.__height
+
         self.__addedPoints = False
         self.__incorrect_moves = 0
         self.__show_hint = False
@@ -553,10 +576,16 @@ class UI():
         self.__show_solution = False
         self.__solutionShown = False
 
+        self.__squareMazeThickness = 6
+        self.__hexagonMazeThickness = 3
+        self.__triangularMazeThickness = 5
+
         self.__time_taken = time.time()
         self.__CellTime = time.time()
         self.__cellTimes = []
-        self.__screen = pg.display.set_mode((self.__width, self.__height))
+        self.__screen = pg.display.set_mode((self.__width, self.__height), pg.RESIZABLE)
+        pg.display.set_caption("CompSci Maze Master")
+
         self.__screen.fill(self.WHITE)
         self.__current_cell = self.maze.getGrid()[0][0]
         self.__token_visited_cells_coords = []
@@ -565,33 +594,28 @@ class UI():
     def updatePygame(self):
         if self.__running:
             self.displayMaze()
-            
             self.cell_hover()
             pg.display.flip()
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.__running = False
-
                 elif event.type == pg.MOUSEBUTTONDOWN:
                     x, y = pg.mouse.get_pos()
                     if x < self.__maze_width:
                         self.__clicked_cell = self.cell_hover(clicked=True)
                         if self.__clicked_cell != None:
                             self.__solve_step_return_value = self.maze.solve_step(self.cell_hover(clicked=True).getID(), self.__current_cell)
-
                             if self.__solve_step_return_value == "end":
                                 self.__current_cell = self.maze.getGrid()[self.maze.getMazeHeight()-1][self.maze.getMazeWidth()-1]
                                 self.displayMaze()
-                                
                                 self.__running = False
-                                self.displayMaze()
                                 return True
                             elif self.__solve_step_return_value == "invalid_move":
                                 self.dialog = Ui_Dialog("Invalid move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-                                self.dialog.show()
+                                self.self.show()
                             elif self.__solve_step_return_value == "wrong_move":
                                 self.dialog = Ui_Dialog("Wrong Move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-                                self.dialog.show()
+                                self.self.show()
                                 self.__incorrect_moves += 1
                             else:
                                 self.__current_cell = self.__solve_step_return_value
@@ -601,7 +625,22 @@ class UI():
                             self.updateMovesPerSecond()
                     else:
                         self.dialog = Ui_Dialog("Please click inside the maze!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-                        self.dialog.show()
+                        self.self.show()
+                elif event.type == pg.VIDEORESIZE:
+                    
+                    self.__oldWidth, self.__oldHeight = self.__width, self.__height
+
+                    width, height = event.w, event.h
+                    self.__screen = pg.display.set_mode((width, height), pg.RESIZABLE)
+                    
+                    self.__infoObject = pg.display.Info()
+
+                    self.__width, self.__height = self.__infoObject.current_w, self.__infoObject.current_h
+                    self.__show_distance_map = False
+                    self.__maze_width, self.__maze_height = self.__width, self.__height
+                    
+                    self.scale_thickness()
+
                         
             self.__screen.fill(self.WHITE)
 
@@ -612,9 +651,9 @@ class UI():
             "time_taken": time.time() - self.__time_taken,
             "hints_used": self.__hints_used,
             "incorrect_moves": self.__incorrect_moves,
-            "gen_algorithm": self.maze.getGenAlgorithmName(),
-            "solve_algorithm": self.maze.getSolveAlgorithmName(),
-            "maze_type": self.maze.getMazeType(),
+            "gen_algorithm": self.TITLE_DICT[self.maze.getGenAlgorithmName()],
+            "solve_algorithm": self.TITLE_DICT[self.maze.getSolveAlgorithmName()],
+            "maze_type": self.maze.getMazeType().capitalize(),
             "maze_width": self.maze.getMazeWidth(),
             "maze_height": self.maze.getMazeHeight(),
             "solution_length": self.__solutionLength,
@@ -643,7 +682,7 @@ class UI():
         pass
 
 class Ui_MazeSolveWindow(QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeWidth, mazeHeight):
+    def __init__(self, desktopWidth, desktopHeight, genAlgorithm, solveAlgorithm, mazeType, mazeWidth, mazeHeight, LANInstance=None, online=False):
         super(Ui_MazeSolveWindow, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
@@ -653,7 +692,9 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.UIinstance = UI()
         self.mazeWidth = mazeWidth
         self.mazeHeight = mazeHeight
-
+        self.LANInstance = LANInstance
+        self.online = online
+        self.setWindowTitle("CompSci Maze Master")
         self.setupUi()
         self.startPygameLoop()
 
@@ -675,7 +716,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.menuExit = QtWidgets.QMenu("Exit", self)
 
         # Adding actions to the menus
-        self.actionAbout = QtWidgets.QAction("About", self)
+        self.actionAbout = QtWidgets.QAction("Help Documentation", self)
         self.actionExit = QtWidgets.QAction("Exit", self)
 
         self.menuHelp.addAction(self.actionAbout)
@@ -899,7 +940,7 @@ class Ui_DialogMazeSolved(QMainWindow):
         self.desktopHeight = desktopHeight
         self.__summaryStats = summaryStats
         self.__UIinstance = UIinstance
-
+        self.setWindowTitle("Summary: Maze Solved")
         self.setupUi()
         self.show()
 
@@ -931,19 +972,23 @@ class Ui_DialogMazeSolved(QMainWindow):
             self.__timeTakenText = f"Time Taken: {int(self.__time_taken)}s"
 
         self.timeTakenLabel = QLabel(f"{self.__timeTakenText}", self.summaryGroupBox)
-        self.hintsUsedLabel = QLabel(f"Hints Used: {self.__summaryStats['hints_used']}", self.summaryGroupBox)
-        self.incorrectMovesLabel = QLabel(f"Incorrect Moves: {self.__summaryStats['incorrect_moves']}", self.summaryGroupBox)
         self.optimalityScoreLabel = QLabel(f"Optimality Score: {(self.__summaryStats['optimality_score']*100):.2f}%", self.summaryGroupBox)
         self.movesPerSecondLabel = QLabel(f"Moves Per Second: {self.__summaryStats['moves_per_second']:.2f}", self.summaryGroupBox)
         self.solutionLengthLabel = QLabel(f"Optimal Solution Length: {self.__summaryStats['solution_length']}", self.summaryGroupBox)
+        self.solutionShownLabel = QLabel(f"Solution Shown: {self.__summaryStats['solution_shown']}", self.summaryGroupBox)
 
         summaryLayout.addWidget(self.timeTakenLabel)
-        summaryLayout.addWidget(self.hintsUsedLabel)
-        summaryLayout.addWidget(self.incorrectMovesLabel)
         summaryLayout.addWidget(self.optimalityScoreLabel)
         summaryLayout.addWidget(self.movesPerSecondLabel)
         summaryLayout.addWidget(self.solutionLengthLabel)
+        summaryLayout.addWidget(self.solutionShownLabel)
         # Maze Solved GroupBox
+
+        if self.__summaryStats['solve_algorithm'] != "Manual solve":
+            self.hintsUsedLabel = QLabel(f"Hints Used: {self.__summaryStats['hints_used']}", self.summaryGroupBox)
+            self.incorrectMovesLabel = QLabel(f"Incorrect Moves: {self.__summaryStats['incorrect_moves']}", self.summaryGroupBox)
+            summaryLayout.addWidget(self.hintsUsedLabel)
+            summaryLayout.addWidget(self.incorrectMovesLabel)
 
         mazeSolvedLayout = QVBoxLayout(self.mazeSolvedGroupBox)
         self.generationAlgorithmLabel = QLabel(f"Generation Algorithm: {self.__summaryStats['gen_algorithm']}", self.mazeSolvedGroupBox)
@@ -966,7 +1011,6 @@ class Ui_DialogMazeSolved(QMainWindow):
         actionButtonsLayout.addWidget(self.downloadMazeButton)
         self.returnToMenuButton.clicked.connect(lambda: self.returnToMenu())
         self.downloadMazeButton.clicked.connect(lambda: self.downloadMaze())
-
         self.resizeEvent = self.onResize
 
     def retranslateUi(self):
@@ -990,11 +1034,11 @@ class Ui_DialogMazeSolved(QMainWindow):
         font.setUnderline(False)
 
         self.timeTakenLabel.setFont(font)
-        self.hintsUsedLabel.setFont(font)
-        self.incorrectMovesLabel.setFont(font)
         self.optimalityScoreLabel.setFont(font)
         self.movesPerSecondLabel.setFont(font)
         self.solutionLengthLabel.setFont(font)
+        self.solutionShownLabel.setFont(font)
+
         self.generationAlgorithmLabel.setFont(font)
         self.solvingAlgorithmLabel.setFont(font)
         self.mazeTypeLabel.setFont(font)
@@ -1002,6 +1046,10 @@ class Ui_DialogMazeSolved(QMainWindow):
         self.mazeHeightLabel.setFont(font)
         self.returnToMenuButton.setFont(font)
         self.downloadMazeButton.setFont(font)
+
+        if self.__summaryStats['solve_algorithm'] != "Manual solve":
+            self.hintsUsedLabel.setFont(font)
+            self.incorrectMovesLabel.setFont(font)
 
         super(Ui_DialogMazeSolved, self).resizeEvent(event)
 
@@ -1014,8 +1062,7 @@ class Ui_DialogMazeSolved(QMainWindow):
     def downloadMaze(self):
         if not self.__UIinstance.downloadMaze():
             self.errorDialog = Ui_Dialog("Error downloading maze! Try again.")
-
-        #ERROR HANDLE THE MAZE DOWNLOAD HERE.
+            self.errorself.show()
 
 class TerminalUI():
 
@@ -1052,22 +1099,23 @@ class TerminalUI():
 class GUI(UI):
     def __init__(self):
         self.app = QApplication(sys.argv)
+
         self.screenWidth = self.app.desktop().screenGeometry().width()
         self.screenHeight = self.app.desktop().screenGeometry().height()
         self.GUI = Ui_MainMenu(self.screenWidth, self.screenHeight)
-        self.GUI.setupUi(self.screenWidth, self.screenHeight)
 
     def run(self):
         self.GUI.show()
-        sys.exit(self.app.exec_())
-        
+        self.app.exec_()
 
 class Ui_MainMenu(QMainWindow):
     def __init__(self, desktopWidth, desktopHeight):
         super(Ui_MainMenu, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
+        self.setWindowTitle("Main Menu: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
+        
 
     def setupUi(self, desktopWidth, desktopHeight):
         self.resize(desktopWidth*0.6, desktopHeight*0.6)
@@ -1101,6 +1149,14 @@ class Ui_MainMenu(QMainWindow):
 
         layout.addWidget(self.StartButton, 0, QtCore.Qt.AlignCenter)  # Add to layout
 
+        # Play over LAN button
+        self.PlayOverLANButton = QtWidgets.QPushButton("Play over LAN", self.centralwidget)
+        self.PlayOverLANButton.setObjectName("PlayOverLANButton")
+        self.PlayOverLANButton.setFont(buttonFont)
+        self.PlayOverLANButton.setMinimumSize(250, 100)
+        layout.addWidget(self.PlayOverLANButton, 0, QtCore.Qt.AlignCenter)
+
+
         # Set layout to central widget
         self.centralwidget.setLayout(layout)
 
@@ -1111,8 +1167,9 @@ class Ui_MainMenu(QMainWindow):
         self.menuExit = QtWidgets.QMenu("Exit", self)
 
         # Adding actions to the menus
-        self.actionAbout = QtWidgets.QAction("About", self)
+        self.actionAbout = QtWidgets.QAction("Help Documentation", self)
         self.actionExit = QtWidgets.QAction("Exit", self)
+        self.actionAbout.triggered.connect(self.about_action_triggered)
 
         self.menuHelp.addAction(self.actionAbout)
         self.menuExit.addAction(self.actionExit)
@@ -1131,29 +1188,38 @@ class Ui_MainMenu(QMainWindow):
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("MainMenu", "MainWindow"))
         self.TitleLabel.setText(_translate("MainMenu", "CompSci Maze Master"))
         self.StartButton.setText(_translate("MainMenu", "Generate New Maze"))
         self.menuHelp.setTitle(_translate("MainMenu", "Help"))
         self.menuExit.setTitle(_translate("MainMenu", "Exit"))
         self.StartButton.clicked.connect(self.StartButton_clicked)
+        self.PlayOverLANButton.clicked.connect(self.PlayOverLANButton_clicked)
 
     def StartButton_clicked(self):
         self.hide()
         self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight)
         self.ForwardWindow.show()
 
+    def PlayOverLANButton_clicked(self):
+        self.hide()
+        self.ForwardWindow = Ui_Login(self.desktopWidth, self.desktopHeight)
+        self.ForwardWindow.show()
+
     def about_action_triggered(self):
-        pass
+        self.__helpMenu = Ui_HelpMenu(self.desktopWidth, self.desktopHeight)
+        self.__helpMenu.show()
 
     def exit_action_triggered(self):
         sys.exit()
 
 class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight):
+    def __init__(self, desktopWidth, desktopHeight, LANInstance=None, online=False):
         super(Ui_GenerateMazeMenu, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
+        self.LANInstance = LANInstance
+        self.online = online
+        self.setWindowTitle("Generate New Maze: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
 
     def setupUi(self, desktopWidth, desktopHeight):
@@ -1253,7 +1319,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.menuExit = QtWidgets.QMenu("Exit", self)
 
         # Adding actions to the menus
-        self.actionAbout = QtWidgets.QAction("About", self)
+        self.actionAbout = QtWidgets.QAction("Help Documentation", self)
         self.actionExit = QtWidgets.QAction("Exit", self)
 
         self.menuHelp.addAction(self.actionAbout)
@@ -1272,10 +1338,14 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
 
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
+        if self.online:
+            self.BackButton.setVisible(False)
+            self.dialog = Ui_Dialog(f"Creating maze for play against {self.LANInstance.getOpponentName()}")
+        else:
+            self.BackButton.clicked.connect(self.BackButton_clicked)
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("GenerateMazeMenu", "MainWindow"))
         self.TitleGenerateMaze.setText(_translate("GenerateMazeMenu", "Generate New Maze"))
         self.GenerateMazeButton.setText(_translate("GenerateMazeMenu", "Generate"))
         self.MazeSettingsContainer.setTitle(_translate("GenerateMazeMenu", "Maze Settings"))
@@ -1300,7 +1370,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.MazeSizeSliderX.valueChanged.connect(self.MazeSizeSliderX_valueChanged)
         self.MazeSizeSliderY.valueChanged.connect(self.MazeSizeSliderY_valueChanged)
         self.GenerateMazeButton.clicked.connect(self.GenerateMazeButton_clicked)
-        self.BackButton.clicked.connect(self.BackButton_clicked)
 
     def MazeSizeSliderX_valueChanged(self):
         self.MazeSizeTextX.setText("Maze Width: " + str(self.MazeSizeSliderX.value()))
@@ -1314,7 +1383,8 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.BackWindow.show()
 
     def about_action_triggered(self):
-        pass
+        self.__helpMenu = Ui_HelpMenu(self.desktopWidth, self.desktopHeight)
+        self.__helpMenu.show()
 
     def exit_action_triggered(self):
         sys.exit()
@@ -1344,15 +1414,16 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.mazeType = 3
         else:
             self.mazeType = None
+        
         if self.genAlgorithm != None and self.solveAlgorithm != None and self.mazeType != None:
+           
             self.hide()
-            self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value())
+            self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value(), self.LANInstance, self.online)
             self.ForwardWindow.show()
         else:
             self.Dialog = QtWidgets.QDialog()
             self.error = Ui_Dialog("Please select all options!", self.desktopWidth, self.desktopHeight)
             self.error.show()
-        self.mazeConfig = [self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value()]
 
     def getMazeConfig(self):
         if self.mazeConfig != None:
@@ -1367,6 +1438,7 @@ class Ui_Dialog(QDialog):
         self.text = text
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
+        self.setWindowTitle("Popup")
         self.setupUi()
 
     def setupUi(self):
@@ -1411,3 +1483,406 @@ class Ui_Dialog(QDialog):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("Dialog", "Dialog"))
         self.label.setText(_translate("Dialog", self.text))
+
+class Ui_RequestToPlayDialog(QDialog):
+    def __init__(self, text, desktopWidth, desktopHeight):
+        super(Ui_RequestToPlayDialog, self).__init__()
+        self.text = text
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.setWindowTitle("Popup")
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("Dialog")
+        self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
+
+        # Main vertical layout
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setObjectName("verticalLayout")
+
+        # Spacer item for vertical alignment
+        self.verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(self.verticalSpacer)
+
+        # Label
+        self.label = QtWidgets.QLabel(self.text, self)
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.label.setFont(font)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
+
+        # Spacer item for vertical alignment
+        self.verticalSpacer2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(self.verticalSpacer2)
+
+        # Button Box
+        self.buttonBox = QtWidgets.QDialogButtonBox(self)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        # Create and add 'Accept' button
+        self.acceptButton = self.buttonBox.addButton("Accept", QtWidgets.QDialogButtonBox.AcceptRole)
+        self.acceptButton.clicked.connect(self.acceptGame)  # Connect to the accept slot
+
+        # Create and add 'Reject' button
+        self.rejectButton = self.buttonBox.addButton("Reject", QtWidgets.QDialogButtonBox.RejectRole)
+        self.rejectButton.clicked.connect(self.rejectGame)  # Connect to the reject slot
+        self.buttonBox.setObjectName("buttonBox")
+        self.buttonBox.setLayoutDirection(QtCore.Qt.LeftToRight)  # Right-align the buttons
+        self.verticalLayout.addWidget(self.buttonBox)
+
+        QtCore.QMetaObject.connectSlotsByName(self)
+        self.retranslateUi()
+        
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label.setText(_translate("Dialog", self.text))
+
+    def acceptGame(self):
+        self.acceptGame = True
+
+    def rejectGame(self):
+        self.acceptGame = False
+
+    def getAcceptGame(self):
+        return self.acceptGame
+    
+
+class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
+    def __init__(self, desktopWidth, desktopHeight, username, password):
+        super(Ui_LANAndWebSockets, self).__init__()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.username = username
+        self.password = password
+        self.playerButtonDict = {}
+        self.setWindowTitle("Play over LAN: CompSci Maze Master")
+        self.setupUi(self.desktopWidth, self.desktopHeight)
+
+    def setupUi(self, desktopWidth, desktopHeight):
+        self.resize(desktopWidth * 0.6, desktopHeight * 0.6)
+        self.setObjectName("PlayOverLANMenu")
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.setCentralWidget(self.centralwidget)
+        # Main layout
+        mainLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        mainLayout.setAlignment(QtCore.Qt.AlignCenter)
+        # Back Button
+        self.BackButton = QtWidgets.QPushButton("Back", self.centralwidget)
+        self.BackButton.setGeometry(20, 20, 100, 40)  # Position in the top left corner
+        self.BackButton.setObjectName("BackButton")
+        self.BackButton.clicked.connect(self.BackButton_clicked)
+
+        # Title Label
+        self.TitlePlayOverLAN = QtWidgets.QLabel("Available players", self.centralwidget)
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        font.setUnderline(True)
+        self.TitlePlayOverLAN.setFont(font)
+        self.TitlePlayOverLAN.setAlignment(QtCore.Qt.AlignCenter)
+        mainLayout.addWidget(self.TitlePlayOverLAN)
+
+        # Players GroupBox
+        self.playersGroupBox = QtWidgets.QGroupBox("Players:", self.centralwidget)
+        playersLayout = QtWidgets.QVBoxLayout()
+        self.playersGroupBox.setLayout(playersLayout)
+
+        # Set a fixed width for the playersGroupBox
+        self.playersGroupBox.setFixedWidth(self.width() * 0.8)
+
+        mainLayout.addWidget(self.playersGroupBox)
+        
+        self.websocket = QWebSocket()
+        self.websocket.connected.connect(self.websocket_connected)
+        self.websocket.disconnected.connect(self.websocket_disconnected)
+        self.websocket.textMessageReceived.connect(self.websocket_message)
+        self.connectToWebSocket()
+        
+    def connectToWebSocket(self):
+        self.websocket.open(QUrl("ws://localhost:8080"))
+
+    def sendWebSocketMessage(self, message):
+        self.websocket.sendTextMessage(json.dumps(message))
+
+    def websocket_connected(self):
+        print("Connected to websocket")
+        self.websocket.sendTextMessage(json.dumps({"type": "login", "user": self.username}))
+    
+    def websocket_disconnected(self):
+        print("Disconnected from websocket")
+    
+    def websocket_message(self, message):
+        try:
+            message_data = json.loads(message)
+            if message_data["type"] == "login":
+                if message_data["success"]:
+                    self.getAvailablePlayers(message_data["connectedUsers"])
+            elif message_data["type"] == "logout":
+                if message_data["success"]:
+                    self.hide()
+                    self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+                    self.BackWindow.show()
+                else:
+                    self.errorDialog = Ui_Dialog("Error logging out!")
+                    self.errorDialog.show()
+            elif message_data["type"] == "requestToPlay":
+                self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
+                self.requestToPlayDialog.show()
+                if self.requestToPlayDialog.getAcceptGame():
+                    self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
+                else:
+                    self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
+            elif message_data["type"] == "confirmationAcceptRequest":
+                if message_data["success"]:
+                    self.hide()
+                    self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
+                    self.ForwardWindow.show()
+                else:
+                    self.errorDialog = Ui_Dialog("Error confirming game! Try again.")
+                    self.errorDialog.show()
+            elif message_data["type"] == "confirmationRejectRequest":
+                if message_data["success"]:
+                    self.errorDialog = Ui_Dialog("Game rejected!")
+                    self.errorDialog.show()
+                else:
+                    self.errorDialog = Ui_Dialog("Error rejecting game! Try again.")
+                    self.errorDialog.show()
+            elif message_data["type"] == "MazeConfig":
+                self.hide()
+                self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["mazeConfig"][0], message_data["mazeConfig"][1], message_data["mazeConfig"][2], message_data["mazeConfig"][3], message_data["mazeConfig"][4], self, online=True)
+                self.ForwardWindow.show()
+
+
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+        
+    def getAvailablePlayers(self, players):
+        print(players)
+        for player in players:
+                if player == None:
+                    continue
+                self.playerButtonFont = QtGui.QFont()
+                self.playerButtonFont.setPointSize(12)
+                playerButton = QtWidgets.QPushButton(player, self.centralwidget)
+                playerButton.setObjectName(f"button_{player}")
+                playerButton.clicked.connect(lambda checked, player=player: self.playerButtonClicked(player))
+                playerButton.setFont(self.playerButtonFont)
+                self.playerButtonDict[player] = playerButton
+                self.playersGroupBox.layout().addWidget(playerButton)
+    
+    def BackButton_clicked(self):
+        self.sendWebSocketMessage({"type": "logout", "user": self.username})
+        
+    def playerButtonClicked(self, player):
+        self.opponent = player
+        self.sendWebSocketMessage({"type": "requestToPlay", "user": self.username, "opponent": player})
+
+    def getOpponentName(self):
+        return self.opponent
+
+    def sendMazeConfig(self, mazeConfig):
+        self.sendWebSocketMessage({"type": "sendMazeConfig", "user": self.username, "opponent": self.opponent, "mazeConfig": mazeConfig})
+
+
+    def resizeEvent(self, event):
+        QtWidgets.QMainWindow.resizeEvent(self,event)
+        # Adjust the back button position on resize
+        self.BackButton.move(20, 20)
+
+class Ui_Login(QtWidgets.QDialog):
+    def __init__(self, desktopWidth, desktopHeight):
+        super(Ui_Login, self).__init__()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("Dialog")
+        self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
+
+        # Main layout
+        mainLayout = QtWidgets.QVBoxLayout(self)
+
+        # GroupBox for Login
+        self.groupBox = QtWidgets.QGroupBox("Login")
+        groupBoxLayout = QtWidgets.QVBoxLayout(self.groupBox)
+
+        # Username layout
+        self.groupBox_2 = QtWidgets.QGroupBox("Enter Username:")
+        groupBox_2_layout = QtWidgets.QHBoxLayout(self.groupBox_2)
+        self.lineEdit = QtWidgets.QLineEdit()
+        groupBox_2_layout.addWidget(self.lineEdit)
+        groupBoxLayout.addWidget(self.groupBox_2)
+
+        # Password layout
+        self.groupBox_3 = QtWidgets.QGroupBox("Enter Password:")
+        groupBox_3_layout = QtWidgets.QHBoxLayout(self.groupBox_3)
+        self.lineEdit_2 = QtWidgets.QLineEdit()
+        groupBox_3_layout.addWidget(self.lineEdit_2)
+        groupBoxLayout.addWidget(self.groupBox_3)
+
+        # Button Box
+        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.login)  # type: ignore
+        self.buttonBox.rejected.connect(self.backToMainMenu)  # type: ignore
+        groupBoxLayout.addWidget(self.buttonBox)
+
+        # Add group box to the main layout
+        mainLayout.addWidget(self.groupBox)
+
+        # Centering the layout
+        mainLayout.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.setLayout(mainLayout)
+
+        # Resize event
+        self.resizeEvent = self.onResize
+
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("Dialog", "Login"))
+        self.groupBox.setTitle(_translate("Dialog", "Login"))
+        self.groupBox_2.setTitle(_translate("Dialog", "Enter Username:"))
+        self.groupBox_3.setTitle(_translate("Dialog", "Enter Password:"))    
+
+    def onResize(self, event):
+        # Adjust font size based on window size
+        fontSize = max(8, min(self.width(), self.height()) // 50)
+        font = QtGui.QFont("Arial", fontSize)
+        self.groupBox.setFont(font)
+        self.groupBox_2.setFont(font)
+        self.groupBox_3.setFont(font)
+        self.lineEdit.setFont(font)
+        self.lineEdit_2.setFont(font)
+    
+    def login(self):
+        self.username = self.lineEdit.text()
+        self.password = self.lineEdit_2.text()
+
+        self.usernameRegex = '^[a-zA-Z0-9]+$'
+        if re.match(self.usernameRegex, self.username):
+            self.hide()
+            self.ForwardWindow = Ui_LANAndWebSockets(self.desktopWidth, self.desktopHeight, self.username, self.password)
+            self.ForwardWindow.show()
+        else:
+            self.errorDialog = Ui_Dialog("Please enter a valid username!")
+            self.errorDialog.show()
+
+    def backToMainMenu(self):
+        self.hide()
+        self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+        self.BackWindow.show()
+
+
+class Ui_HelpMenu(QMainWindow):
+    def __init__(self, desktopWidth, desktopHeight):
+        super(Ui_HelpMenu, self).__init__()
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("HelpMenu")
+        self.resize(self.desktopWidth * 0.6, self.desktopHeight * 0.6)
+
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.centralwidget.setObjectName("centralwidget")
+        self.setCentralWidget(self.centralwidget)
+
+        # Create a vertical layout
+        self.layout = QtWidgets.QVBoxLayout(self.centralwidget)
+
+        # Label
+        self.label = QtWidgets.QLabel("Help for CompSciMazeMaster", self.centralwidget)
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        font.setBold(True)
+        font.setUnderline(True)
+        font.setWeight(75)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)  # Set label alignment to center
+
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.layout.addWidget(self.label)
+
+        # Scroll Area
+        self.helpArea = QtWidgets.QScrollArea(self.centralwidget)
+        self.helpArea.setWidgetResizable(True)
+        self.helpArea.setObjectName("helpArea")
+
+        self.scrollAreaWidgetContents = QtWidgets.QWidget()
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 789, 549))
+        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
+
+        # Layout for scrollAreaWidgetContents
+        self.scrollLayout = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
+        self.helpArea.setWidget(self.scrollAreaWidgetContents)
+
+        # Text Browser
+        self.textBrowser = QtWidgets.QTextBrowser(self.scrollAreaWidgetContents)
+        self.textBrowser.setObjectName("textBrowser")
+        self.scrollLayout.addWidget(self.textBrowser)
+
+        # Adding helpArea to the main layout
+        self.layout.addWidget(self.helpArea)
+
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
+        self.menubar.setObjectName("menubar")
+        self.setMenuBar(self.menubar)
+
+        self.statusbar = QtWidgets.QStatusBar(self)
+        self.statusbar.setObjectName("statusbar")
+        self.setStatusBar(self.statusbar)
+
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("HelpMenu", "HelpMenu"))
+        self.textBrowser.setHtml(_translate("HelpMenu",  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"<h2 style=\" margin-top:16px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt; font-weight:600;\">Introduction</span></h2>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">Welcome to the Maze Generator and Solver, an interactive platform designed to enhance your understanding of maze algorithms and graph traversal techniques in computer science. This guide will assist you in navigating and utilising the features of our application effectively.</span></p>\n"
+"<h2 style=\" margin-top:16px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt; font-weight:600;\">Features and How to Use</span></h2>\n"
+"<h3 style=\" margin-top:14px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt; font-weight:600;\">Main Menu</span></h3>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:8pt;\" style=\" margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Generate Maze</span>: Create a new maze with customizable settings.</li></ul>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Help</span>: Access instructions, FAQs, and user tips.</li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Quit</span>: Exit the application.</li></ul>\n"
+"<h3 style=\" margin-top:14px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:600;\">Generating a Maze</span></h3>\n"
+"<ol style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:16pt;\" style=\" margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt; font-weight:600;\">Select Maze Type</span><span style=\" font-size:8pt;\">: Choose from square, hexagonal, or triangular grid shapes.</span></li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Select Algorithm</span>: Pick an algorithm for maze generation like Sidewinder, Binary Tree, etc.</li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Customize Size</span>: Set the dimensions of the maze.</li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Generate</span>: Click on ‘Generate’ to create the maze based on your specifications.</li></ol>\n"
+"<h3 style=\" margin-top:14px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:600;\">Solving a Maze</span></h3>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:16pt;\" style=\" margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt; font-weight:600;\">Select Solving Method</span><span style=\" font-size:8pt;\">: Choose between  algorithms (DFS, BFS, etc.) or manual solving.</span></li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Interact and Solve</span>: Use your mouse to navigate the maze to trace out the solving algorithm as it attempts to find a route from the top left cell to the bottom right.</li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">View Solution</span>: After solving, view your solving stats such as the optimal solution path and a heat map indicating the number of visits per cell.</li></ul>\n"
+"<h2 style=\" margin-top:16px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:600;\">Tips for Effective Learning</span></h2>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:16pt;\" style=\" margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">Use the manual mode to deeply understand the maze-solving process</span></li>\n"
+"<li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Utilise the program state you have access to, which tells you the current contents of the stack/queue along with neighbour information.</li></ul>\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Experiment with different maze types and sizes to understand their complexities.</li></ul>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;\"><br /></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:600;\">Conclusion</span></p>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">The Maze Generator and Solver is a comprehensive tool designed to make learning computer science algorithms engaging and interactive. We hope this guide assists you in exploring and mastering the intricacies of maze algorithms and graph traversal techniques. Happy learning!</span></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;\"><br /></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\"><br /></span></p></body></html>"))  # Your HTML content
+        self.label.setText(_translate("HelpMenu", "Help for CompSciMazeMaster"))
+
+    # Resize Event to adjust font size
+    def resizeEvent(self, event):
+        newFont = self.font()
+        newFont.setPointSize(max(8, int(self.width() / 80)))  # Adjust this ratio as needed
+        #self.label.setFont(newFont)
+        self.textBrowser.setFont(newFont)
+        super(Ui_HelpMenu, self).resizeEvent(event)
+
