@@ -1636,7 +1636,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.connectToWebSocket()
 
     def connectToWebSocket(self):
-        self.websocket.open(QUrl("ws://localhost:8080"))
+        self.websocket.open(QUrl("ws://192.168.68.102:8080"))
 
     def websocket_error(self, error):
         self.errorDialog = Ui_Dialog("Error connecting to server! Try restarting the server.", self.desktopWidth, self.desktopHeight)
