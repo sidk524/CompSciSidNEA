@@ -6,7 +6,6 @@ const wss = new WebSocket.Server({ port: 8080 });
 var connectedUsers = new Map();
 var games = new Map();
 
-connectedUsers.set("user1", "ws1");
 
 wss.on('connection', function connection(ws) {
   console.log("Connection established");
@@ -18,6 +17,11 @@ wss.on('connection', function connection(ws) {
           console.log("Login request received");
           ws.send(JSON.stringify({type: "login", success: true, connectedUsers: Array.from(connectedUsers.keys())}));
           connectedUsers.set(sendingClient, ws);
+          wss.clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN && client != ws)  { 
+              client.send(JSON.stringify({type: "newUser", connectedUsers: Array.from(connectedUsers.keys())}));
+            }
+          });
         
       } else if (msg.type == "logout") {
         if (connectedUsers.delete(sendingClient)){

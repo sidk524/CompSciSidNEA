@@ -1654,13 +1654,14 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.errorDialog = Ui_Dialog("Disconnected from server! Try restarting the server.", self.desktopWidth, self.desktopHeight)
         self.errorDialog.show()
         self.connectToWebSocket()
-        
+
     def websocket_message(self, message):
         try:
             message_data = json.loads(message)
             if message_data["type"] == "login":
                 if message_data["success"]:
                     self.getAvailablePlayers(message_data["connectedUsers"])
+
             elif message_data["type"] == "logout":
                 if message_data["success"]:
                     self.hide()
@@ -1669,6 +1670,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 else:
                     self.errorDialog = Ui_Dialog("Error logging out!")
                     self.errorDialog.show()
+            elif message_data["newUser"]:
+                self.getAvailablePlayers(message_data["connectedUsers"])
             elif message_data["type"] == "requestToPlay":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
