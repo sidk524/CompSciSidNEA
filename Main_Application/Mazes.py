@@ -13,13 +13,11 @@ class Cell:
         self.__id = ID
         self.__parent = None
 
-
     def addConnection(self, cell):
         if len(self.__connections) < self.__maxConnections and not (cell in self.__connections) and self.getID() != cell.getID():
             self.__connections.append(cell)
             cell.addConnection(self)
        
-    
     def removeConnection(self, cell):
         if cell in self.__connections:
             self.__connections.remove(cell)
@@ -30,9 +28,7 @@ class Cell:
             return True
         else:
             return False     
-        
-        
-    
+
     def setParent(self, cell):  
         self.__parent = cell
 
@@ -54,7 +50,7 @@ class Cell:
 
 class Maze:
     MAZETYPES = ["square", "hexagonal", "triangular", "octagonal"]
-    def __init__(self, mazeType, gen_algorithm, solve_algorithm, mazeWidth, mazeHeight):
+    def __init__(self, mazeType, gen_algorithm, solve_algorithm, mazeWidth, mazeHeight, mazeGrid=None):
 
         self.__type = self.MAZETYPES[mazeType-1]
         self.__mazeWidth = mazeWidth
@@ -65,8 +61,9 @@ class Maze:
         self.__AlgorithmFactory = AlgorithmFactory(self.__gen_algorithm_name, self.__solve_algorithm_name)
         self.__genAlgorithm = self.__AlgorithmFactory.getGenAlgorithm()
         self.__solveAlgorithm = self.__AlgorithmFactory.getSolveAlgorithm()
+        self.__gridFromOpponent = mazeGrid
 
-
+    
     def initialiseMaze(self):
             if self.__type == "square":
                 self.__grid = dict()
@@ -102,14 +99,19 @@ class Maze:
 
     def generate(self):
         self.initialiseMaze()
-        self.__grid = self.__genAlgorithm.generate(self)
-        self.__curr = self.__solveAlgorithm.findValidPath(self)
-        gen = 0
-        while self.__curr == False:
-            self.__genAlgorithm.generate(self)
+        if self.__gridFromOpponent == None:
+            self.__grid = self.__genAlgorithm.generate(self)
             self.__curr = self.__solveAlgorithm.findValidPath(self)
-            gen += 1
-        print(gen)
+            gen = 0
+            while self.__curr == False:
+                self.__genAlgorithm.generate(self)
+                self.__curr = self.__solveAlgorithm.findValidPath(self)
+                gen += 1
+            print(gen)
+        else:
+            self.__grid = self.__gridFromOpponent
+            self.__curr = self.__solveAlgorithm.findValidPath(self)
+
         self.__validPath, self.__programStates = self.__curr
         self.__algorithm_route = [s[0] for s in self.__programStates]
 
@@ -657,4 +659,4 @@ class BinaryTree(GenAlgorithm):
                                 self.__maze.getGrid()[y][x-1].addConnection(self.__maze.getGrid()[y-1][x-1])
 
             return self.__maze.getGrid()
-     
+

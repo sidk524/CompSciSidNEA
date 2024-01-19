@@ -1,5 +1,4 @@
 import UIclasses
-import Mazes
 
 uiType = input("Welcome to CompSciMazeMaster! Enter 't' to run in the terminal, or 'g' to run in the GUI: ").lower()
 
@@ -12,4 +11,3 @@ elif uiType == "g":
     UI = UIclasses.GUI()
 
 UI.run()
-

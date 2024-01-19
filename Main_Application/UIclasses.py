@@ -13,7 +13,6 @@ import sys
 import re
 import json
 import requests
-import asyncio
 from screeninfo import get_monitors
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebSockets
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow, QWidget, QDialog, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
@@ -33,7 +32,6 @@ class UI():
     HINT_COLOUR = (255, 255, 0)
     CHARACTERCOLOUR = (0, 32, 235)
 
-    
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
 
     INSTRUCTIONS = {
@@ -386,7 +384,7 @@ class UI():
             self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
         else:
             self.dialog = Ui_Dialog("There are no hints available for this maze. Try solving it yourself!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-            self.self.show()
+            self.dialog.show()
 
     def getHintsUsed(self):
         return self.__hints_used
@@ -501,7 +499,6 @@ class UI():
              
             self.drawHexagon(self.__current_cell_x, self.__current_cell_y, self.__cell_side_length, self.CHARACTERCOLOUR, character=True, fill=True)
            
-            
             for y in range(self.maze.getMazeHeight()):
                 for x in range(len(self.maze.getGrid()[y])):
                     
@@ -609,11 +606,17 @@ class UI():
                                 self.__running = False
                                 return True
                             elif self.__solve_step_return_value == "invalid_move":
-                                self.dialog = Ui_Dialog("Invalid move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-                                self.self.show()
+                                if self.UiType == "GUI":
+                                    self.dialog = Ui_Dialog("Invalid move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+                                    self.dialog.show()
+                                else:
+                                    print("Invalid move!")
                             elif self.__solve_step_return_value == "wrong_move":
-                                self.dialog = Ui_Dialog("Wrong Move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-                                self.self.show()
+                                if self.UiType == "GUI":
+                                    self.dialog = Ui_Dialog("Wrong move!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+                                    self.dialog.show()
+                                else:
+                                    print("Wrong move!")
                                 self.__incorrect_moves += 1
                             else:
                                 self.__current_cell = self.__solve_step_return_value
@@ -622,8 +625,12 @@ class UI():
                                 self.__distanceMap = None
                             self.updateMovesPerSecond()
                     else:
-                        self.dialog = Ui_Dialog("Please click inside the maze!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
-                        self.self.show()
+                        if self.UiType == "GUI":
+                            self.dialog = Ui_Dialog("Please click inside the maze!", self.DESKTOP_WIDTH, self.DESKTOP_HEIGHT)
+                            self.dialog.show()
+                        else:
+                            print("Please click inside the maze!")
+                       
                 elif event.type == pg.VIDEORESIZE:
                     
                     self.__oldWidth, self.__oldHeight = self.__width, self.__height
@@ -1087,7 +1094,7 @@ class Ui_DialogMazeSolved(QMainWindow):
             self.errorDialog = Ui_Dialog("Error downloading maze! Try again.")
             self.errorself.show()
 
-class TerminalUI():
+class TerminalUI(UI):
 
     def __init__(self):
         pass    
@@ -1097,27 +1104,37 @@ class TerminalUI():
         self.__solve_algorithms = ["depth_first", "breadth_first", "manual"]
 
         genAlgorithm = input("Please choose an algorithm to generate the maze, 1 for sidewinder, 2 for binary tree: ")
-        if genAlgorithm != "1" and genAlgorithm != "2":
+        while genAlgorithm != "1" and genAlgorithm != "2":
             genAlgorithm = input("Please input a valid option, 1 for sidewinder, 2 for binary tree: ")
         
         solveAlgorithm = input("Please choose an algorithm to solve the maze, 1 for DFS, 2 for BFS, 3 for solving manually: ")
-        if solveAlgorithm not in ["1", "2", "3"]:
+        while solveAlgorithm not in ["1", "2", "3"]:
             solveAlgorithm = input("Please input a valid option, 1 for DFS, 2 for BFS, 3 for manual solving: ")
         
         mazeType = input("Please input the type of the maze, 1 for square, 2 for hexagonal, 3 for triangular: ")
-        if mazeType not in ["1", "2", "3"]:
+        while mazeType not in ["1", "2", "3"]:
             mazeType = input("Please input a valid option, 1 for square, 2 for hexagonal, 3 for triangular: ")
 
-        mazeSize = input("Please input the size of the maze: ")
-        if not mazeSize.isdigit() or int(mazeSize) < 5 or int(mazeSize) > 100:
-            mazeSize = input("Please input a valid size, between 5 and 100: ")
+        mazeWidth = input("Please input the width of the maze: ")
+        while not mazeWidth.isdigit() or int(mazeWidth) < 5 or int(mazeWidth) > 100:
+            mazeWidth = input("Please input a valid size, between 5 and 100: ")
         
-        self.maze = Mazes.Maze(mazeType=int(mazeType), size=int(mazeSize), gen_algorithm=self.__gen_algorithms[int(genAlgorithm)-1], solve_algorithm=self.__solve_algorithms[int(solveAlgorithm)-1])
+        mazeHeight = input("Please input the height of the maze: ")
+        while not mazeHeight.isdigit() or int(mazeHeight) < 5 or int(mazeHeight) > 100:
+            mazeHeight = input("Please input a valid size, between 5 and 100: ")
+        
+        self.maze = Mazes.Maze(mazeType=int(mazeType), gen_algorithm=self.__gen_algorithms[int(genAlgorithm)-1], solve_algorithm=self.__solve_algorithms[int(solveAlgorithm)-1], mazeWidth=int(mazeWidth), mazeHeight=int(mazeHeight))
 
         self.maze.generate()
+        self.initPygame(self.maze)
+        self.UiType = "terminal"
+        while True:
+            if self.updatePygame():
+                print("Congratulations! You solved the maze!")
+                break
 
-        self.GUI = Ui_MazeSolveWindow(self.screenWidth, self.screenHeight, self.__gen_algorithms[int(genAlgorithm)-1], self.__solve_algorithms[int(solveAlgorithm)-1], int(mazeType), int(mazeSize))
-        self.GUI.show()
+
+
 
 class GUI(UI):
     def __init__(self):
@@ -1125,6 +1142,7 @@ class GUI(UI):
 
         self.screenWidth = self.app.desktop().screenGeometry().width()
         self.screenHeight = self.app.desktop().screenGeometry().height()
+        self.UiType = "GUI"
         self.GUI = Ui_MainMenu(self.screenWidth, self.screenHeight)
 
     def run(self):
@@ -1139,10 +1157,8 @@ class Ui_MainMenu(QMainWindow):
         self.setWindowTitle("Main Menu: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
         
-
     def setupUi(self, desktopWidth, desktopHeight):
         self.resize(desktopWidth*0.6, desktopHeight*0.6)
-        
         self.setObjectName("MainMenu")
         self.centralwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralwidget)
@@ -1438,9 +1454,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.mazeType = 3
         else:
             self.mazeType = None
-        
         if self.genAlgorithm != None and self.solveAlgorithm != None and self.mazeType != None:
-           
             self.hide()
             self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value(), self.LANInstance, self.online)
             self.ForwardWindow.show()
@@ -1454,7 +1468,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             return self.mazeConfig
         else:
             return None
-
 
 class Ui_Dialog(QDialog):
     def __init__(self, text, desktopWidth, desktopHeight):
