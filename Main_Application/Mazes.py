@@ -3,9 +3,6 @@ import random
 import pygame as pg
 import math
 
-# Initilise a flipped dictionary during initialisation of the maze
-
-
 class Cell:
     def __init__(self,  maxConnections, ID):
         self.__connections = []
@@ -63,7 +60,6 @@ class Maze:
         self.__solveAlgorithm = self.__AlgorithmFactory.getSolveAlgorithm()
         self.__gridFromOpponent = mazeGrid
 
-    
     def initialiseMaze(self):
             if self.__type == "square":
                 self.__grid = dict()
@@ -211,8 +207,6 @@ class Maze:
     def solve_step(self, clicked_cell_id, current_cell):
         return self.__solveAlgorithm.solve_step(self, clicked_cell_id, current_cell)
     
-   
-
 class AlgorithmFactory():
     solvingAlgorithms = ["breadth_first", "depth_first", "manual"]
     generatingAlgorithms = ["sidewinder", "binary_tree"]
@@ -456,6 +450,7 @@ class BreadthFirst(SolveAlgorithm):
                     return "wrong_move"
             else:
                 return "invalid_move"
+            
         elif self.__maze.getMazeType() == "hexagonal":
             if not(self.__clicked_cell_id[0] < 0 or self.__clicked_cell_id[0] >= len(self.__maze.getGrid()[self.__clicked_cell_id[1]]) or self.__clicked_cell_id[1] < 0 or self.__clicked_cell_id[1] >= self.__maze.getMazeHeight()):
                 self.__algorithm_route_current_cell_index = self.__maze.getAlgorithmRoute().index(self.__current_cell)

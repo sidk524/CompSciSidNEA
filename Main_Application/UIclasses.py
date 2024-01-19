@@ -1632,12 +1632,10 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.websocket.connected.connect(self.websocket_connected)
         self.websocket.disconnected.connect(self.websocket_disconnected)
         self.websocket.textMessageReceived.connect(self.websocket_message)
+        self.websocket.error.connect(self.websocket_error)
         self.connectToWebSocket()
 
     def connectToWebSocket(self):
-        self.websocket.connected.connect(self.websocket_connected)
-        self.websocket.disconnected.connect(self.websocket_disconnected)
-        self.websocket.error.connect(self.websocket_error)
         self.websocket.open(QUrl("ws://localhost:8080"))
 
     def websocket_error(self, error):
