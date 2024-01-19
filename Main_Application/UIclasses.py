@@ -1670,7 +1670,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 else:
                     self.errorDialog = Ui_Dialog("Error logging out!")
                     self.errorDialog.show()
-            elif message_data["newUser"]:
+            elif message_data["type"] == "newUser":
                 self.getAvailablePlayers(message_data["connectedUsers"])
             elif message_data["type"] == "requestToPlay":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
