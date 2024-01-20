@@ -1456,7 +1456,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         if self.genAlgorithm != None and self.solveAlgorithm != None and self.mazeType != None:
             
             self.hide()
-            self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value(), self.LANInstance, self.online)
+            self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value(), LANInstance=self.LANInstance, online=self.online)
             self.ForwardWindow.show()
         else:
             self.Dialog = QtWidgets.QDialog()
