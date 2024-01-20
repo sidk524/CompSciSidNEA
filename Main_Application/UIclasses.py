@@ -867,11 +867,11 @@ class Ui_MazeSolveWindow(QMainWindow):
             "maze_height": maze.getMazeHeight(),
             "gen_algorithm": maze.getGenAlgorithmName(),
             "solve_algorithm": maze.getSolveAlgorithmName(),
-            "grid": []
+            "grid": dict()
         }
 
         for y in range(maze.getMazeHeight()):
-            mazeDict["grid"].append([])
+            mazeDict["grid"][y] = []
             for x in range(len(maze.getGrid()[y])):
                 cell = maze.getGrid()[y][x]
                 cellDict = {
