@@ -93,6 +93,8 @@ class Maze:
 
     def generate(self):
         self.initialiseMaze()
+        print(self.__grid)
+
         if self.__gridFromOpponent == None:
             self.__grid = self.__genAlgorithm.generate(self)
             self.__curr = self.__solveAlgorithm.findValidPath(self)
@@ -110,7 +112,6 @@ class Maze:
         self.__algorithm_route = [s[0] for s in self.__programStates]
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
 
-        print(self.__grid)
 
     def getHint(self, current_cell):
         for n, i in enumerate(self.__algorithm_route_ids):
