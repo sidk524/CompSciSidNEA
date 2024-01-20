@@ -15,7 +15,7 @@ class Cell:
             self.__connections.append(cell)
             cell.addConnection(self)
        
-       
+
     def removeConnection(self, cell):
         if cell in self.__connections:
             self.__connections.remove(cell)
@@ -94,7 +94,7 @@ class Maze:
 
     def generate(self):
         self.initialiseMaze()
-        print(self.__grid)
+        print(self.__gridFromOpponent)
 
         if self.__gridFromOpponent == None:
             self.__grid = self.__genAlgorithm.generate(self)
