@@ -15,6 +15,7 @@ class Cell:
             self.__connections.append(cell)
             cell.addConnection(self)
        
+       
     def removeConnection(self, cell):
         if cell in self.__connections:
             self.__connections.remove(cell)
