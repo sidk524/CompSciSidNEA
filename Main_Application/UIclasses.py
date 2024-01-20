@@ -453,8 +453,6 @@ class UI():
             self.showDistanceMap()
         if self.__show_solution:
             self.showSolution()
-        if self.__display_opponent_move:
-            self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
         if self.maze.getMazeType() == "square":
             self.__points = []
             self.__cell_width = self.__maze_width / self.maze.getMazeWidth()
@@ -541,6 +539,9 @@ class UI():
 
                     for c in self.__cell_connections:
                          self.draw_triangle_connection(self.maze.getGrid()[y][x], c, self.__cell_side_length)
+
+        if self.__display_opponent_move:
+            self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
 
     def scale_thickness(self):
         self.__potentialSquareMazeThickness = list(range(1, 7))
@@ -927,11 +928,11 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.online:
             self.update_opponent_timer = QTimer(self)
             self.update_opponent_timer.timeout.connect(lambda: self.updateOpponent())
-            self.update_opponent_timer.start(1000)
+            self.update_opponent_timer.start(100)
             
             self.get_opponent_move_timer = QTimer(self)
             self.get_opponent_move_timer.timeout.connect(lambda: self.getOpponentMove())
-            self.get_opponent_move_timer.start(1000)
+            self.get_opponent_move_timer.start(100)
 
     def updateOpponent(self):
         self.currentCellID = self.UIinstance.getCurrentCell().getID()
