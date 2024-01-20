@@ -454,7 +454,7 @@ class UI():
         if self.__show_solution:
             self.showSolution()
         if self.__display_opponent_move:
-            self.highlightCell(self.__opponent_cell, colour=self.OPPONENTCOLOUR)
+            self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
         if self.maze.getMazeType() == "square":
             self.__points = []
             self.__cell_width = self.__maze_width / self.maze.getMazeWidth()

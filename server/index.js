@@ -78,6 +78,13 @@ wss.on('connection', function connection(ws) {
             client.send(JSON.stringify({type: "maze", maze: msg.maze}));
           }
         });
+      } else if (msg.type == "sendMove"){
+        console.log("Move received", msg.currentCell, "from", sendingClient);
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
+            client.send(JSON.stringify({type: "move", move: msg.currentCell}));
+          }
+        });
       }
     } catch (e) {
       console.log(e);
