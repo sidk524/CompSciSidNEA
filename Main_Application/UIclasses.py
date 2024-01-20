@@ -720,14 +720,12 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.setWindowTitle("CompSci Maze Master")
         self.setupUi()
         self.startPygameLoop()
-
         self.show()
 
     def setupUi(self):
         self.setObjectName("MazeSolveWindow")
         self.centralwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralwidget)
-
         initial_width = self.desktopWidth * 0.7  # 70% of the desktop width
         initial_height = self.desktopHeight * 0.7  
         self.resize(initial_width, initial_height)
@@ -936,11 +934,11 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.online:
             self.update_opponent_timer = QTimer(self)
             self.update_opponent_timer.timeout.connect(lambda: self.updateOpponent())
-            self.update_opponent_timer.start(100)
+            self.update_opponent_timer.start(300)
             
             self.get_opponent_move_timer = QTimer(self)
             self.get_opponent_move_timer.timeout.connect(lambda: self.getOpponentMove())
-            self.get_opponent_move_timer.start(104)
+            self.get_opponent_move_timer.start(304)
 
     def updateOpponent(self):
         self.currentCellID = self.UIinstance.getCurrentCell().getID()
@@ -1867,7 +1865,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 while self.winDialog.getContinuePlayingState() == None:
                     QtWidgets.QApplication.processEvents()
                 if self.winDialog.getContinuePlayingState():
-                    pass
+                    self.winDialog.close()
                 else:
                     self.hide()
                     self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
@@ -1911,20 +1909,20 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.sendWebSocketMessage({"type": "logout", "user": self.username})
         
     def playerButtonClicked(self, player):
-        self.opponent = player
+        self.currentOpponent = player
         self.sendWebSocketMessage({"type": "requestToPlay", "user": self.username, "opponent": player})
 
     def getOpponentName(self):
-        return self.opponent
+        return self.currentOpponent
 
     def getCurrentOpponentCellID(self):
         return self.currentOpponentCellID
 
     def sendMaze(self, maze):
-        self.sendWebSocketMessage({"type": "sendMaze", "user": self.username, "opponent": self.opponent, "maze": maze})
+        self.sendWebSocketMessage({"type": "sendMaze", "user": self.username, "opponent": self.currentOpponent, "maze": maze})
 
     def sendWin(self):
-        self.sendWebSocketMessage({"type": "win", "user": self.username, "opponent": self.opponent})
+        self.sendWebSocketMessage({"type": "win", "user": self.username, "opponent": self.currentOpponent})
 
     def resizeEvent(self, event):
         QtWidgets.QMainWindow.resizeEvent(self,event)

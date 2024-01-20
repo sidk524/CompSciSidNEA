@@ -89,14 +89,14 @@ wss.on('connection', function connection(ws) {
         console.log("win received", msg.opponent, connectedUsers.get(msg.opponent));
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
-            client.send(JSON.stringify({type: "win"}));
+            client.send(JSON.stringify({type: "win", user: sendingClient}));
             console.log("win sent");
           }
         });
       }
     } catch (e) {
       console.log(e);
-      console.log(msg)
+      
     }
 
   });
