@@ -31,6 +31,7 @@ class UI():
     HIGHLIGHT_COLOUR = (187, 216, 236)
     HINT_COLOUR = (255, 255, 0)
     CHARACTERCOLOUR = (0, 32, 235)
+    OPPONENTCOLOUR = (255, 0, 0)
 
     TITLE_DICT = {"sidewinder": "Sidewinder", "binary tree": "Binary Tree", "depth_first": "Depth First Search", "breadth_first": "Breadth First Search", "manual": "Manual solve"}
 
@@ -452,6 +453,8 @@ class UI():
             self.showDistanceMap()
         if self.__show_solution:
             self.showSolution()
+        if self.__display_opponent_move:
+            self.highlightCell(self.__opponent_cell, colour=self.OPPONENTCOLOUR)
         if self.maze.getMazeType() == "square":
             self.__points = []
             self.__cell_width = self.__maze_width / self.maze.getMazeWidth()
@@ -677,7 +680,14 @@ class UI():
             return True
         except:
             return False
-        
+
+    def getCurrentCell(self):
+        return self.__current_cell    
+
+    def displayOpponentMove(self, cellID):
+        self.__display_opponent_move = True
+        self.__opponent_current_cell = self.maze.getGrid()[cellID[1]][cellID[0]]
+
     def closeProgram(self):
         pg.quit()
 
@@ -812,7 +822,8 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.incorrect_moves_timer = QTimer(self)
             self.incorrect_moves_timer.timeout.connect(lambda: self.updateIncorrectMoves())
             self.incorrect_moves_timer.start(500) 
-                    # Add labels to state layout
+            
+            # Add labels to state layout
             stateLayout = QtWidgets.QVBoxLayout(self.States)
             stateLayout.addWidget(self.programStateLabel)
         
@@ -911,6 +922,25 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.pygame_timer = QTimer(self)
         self.pygame_timer.timeout.connect(lambda: self.updatePygame())
         self.pygame_timer.start(33)  # 30 fps
+
+        if self.online:
+            self.update_opponent_timer = QTimer(self)
+            self.update_opponent_timer.timeout.connect(lambda: self.updateOpponent())
+            self.update_opponent_timer.start(1000)
+            
+            self.get_opponent_move_timer = QTimer(self)
+            self.get_opponent_move_timer.timeout.connect(lambda: self.getOpponentMove())
+            self.get_opponent_move_timer.start(1000)
+
+    def updateOpponent(self):
+        self.currentCellID = self.UIinstance.getCurrentCell().getID()
+        self.LANInstance.sendCurrentCell(self.currentCellID)
+
+    def getOpponentMove(self):
+        self.opponentMove = self.LANInstance.getOpponentMove()
+        if self.opponentMove != None:
+            self.UIinstance.displayOpponentMove(self.opponentMove)
+
 
     def updatePygame(self):
         if self.UIinstance.updatePygame():
@@ -1694,21 +1724,17 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.requestToPlayDialog.show()
                 while self.requestToPlayDialog.getAcceptGame() == None:
                     QtWidgets.QApplication.processEvents()
-                
                 if self.requestToPlayDialog.getAcceptGame():
                     self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
                 else:
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
                 self.requestToPlayDialog.close()
             elif message_data["type"] == "confirmationAcceptRequest":
-                #try:
+                    self.currentOpponent = message_data["opponent"] 
                     self.hide()
                     self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
                     self.ForwardWindow.show()
-                # except Exception as e:
-                #     print(e)
-                #     self.errorDialog = Ui_Dialog("Error confirming game! Try again.", self.desktopWidth, self.desktopHeight)
-                #     self.errorDialog.show()
+         
             elif message_data["type"] == "confirmationRejectRequest":
                 try:
                     self.errorDialog = Ui_Dialog("Game rejected!")
@@ -1746,22 +1772,15 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
                 self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
                 self.ForwardWindow.show()
-
-#   for y in range(maze.getMazeHeight()):
-#             mazeDict["grid"][y] = []
-#             for x in range(len(maze.getGrid()[y])):
-#                 cell = maze.getGrid()[y][x]
-#                 cellDict = {
-#                     "id": cell.getID(),
-#                     "connections": [str(c) for c in cell.getConnections()]
-#                 }
-#                 mazeDict["grid"][y].append(cellDict)
-
-#         return mazeDict
+            elif message_data["type"] == "move":
+                self.currentOpponentCellID = message_data["move"]
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
-        
+    
+    def sendCurrentCell(self, currentCellID):
+        self.sendWebSocketMessage({"type": "sendMove", "user": self.username, "opponent": self.currentOpponent, "currentCell": currentCellID})
+
     def getAvailablePlayers(self, players):
         print(players)
 
@@ -1795,6 +1814,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
     def getOpponentName(self):
         return self.opponent
+
+    def getCurrentOpponentCellID(self):
+        return self.currentOpponentCellID
 
     def sendMaze(self, maze):
         self.sendWebSocketMessage({"type": "sendMaze", "user": self.username, "opponent": self.opponent, "maze": maze})
