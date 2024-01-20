@@ -860,9 +860,9 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.mazeType = 2
         elif self.mazeType == "triangular":
             self.mazeType = 3
-            
+
         mazeDict = {
-            "maze_type": maze.getMazeType(),
+            "maze_type": self.mazeType,
             "maze_width": maze.getMazeWidth(),
             "maze_height": maze.getMazeHeight(),
             "gen_algorithm": maze.getGenAlgorithmName(),
