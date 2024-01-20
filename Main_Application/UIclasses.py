@@ -1728,6 +1728,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     QtWidgets.QApplication.processEvents()
                 if self.requestToPlayDialog.getAcceptGame():
                     self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
+                    self.currentOpponent = message_data["user"]
                 else:
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
                 self.requestToPlayDialog.close()
