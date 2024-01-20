@@ -565,7 +565,7 @@ class UI():
             self.UiType = "GUI"
         self.maze = maze
         self.__infoObject = pg.display.Info()
-        self.__width, self.__height = self.__infoObject.current_w*0.6, self.__infoObject.current_h*0.8
+        self.__width, self.__height = self.DESKTOP_WIDTH*0.7, self.DESKTOP_HEIGHT*0.7
 
         self.__show_distance_map = False
         self.__maze_width, self.__maze_height = self.__width, self.__height
