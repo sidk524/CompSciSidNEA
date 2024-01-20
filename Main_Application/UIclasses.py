@@ -562,6 +562,7 @@ class UI():
 
         self.__show_distance_map = False
         self.__maze_width, self.__maze_height = self.__width, self.__height
+        self.__display_opponent_move = False
 
         self.__addedPoints = False
         self.__incorrect_moves = 0
