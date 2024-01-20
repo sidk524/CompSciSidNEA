@@ -1639,6 +1639,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.username = username
         self.password = password
         self.playerButtonDict = {}
+        self.currentOpponentCellID = None
         self.setWindowTitle("Play over LAN: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
 
