@@ -110,7 +110,6 @@ class Maze:
 
         self.__validPath, self.__programStates = self.__curr
         self.__algorithm_route = [s[0] for s in self.__programStates]
-
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
 
     def getHint(self, current_cell):

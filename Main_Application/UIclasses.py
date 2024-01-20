@@ -891,7 +891,7 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight, mazeGrid=self.mazeGrid)
         else:
             self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
-            self.maze.generate()
+        self.maze.generate()
 
         if self.online and self.mazeGrid == None:
             self.LANInstance.sendMaze(self.mazeToJSON(self.maze))
