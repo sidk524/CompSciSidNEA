@@ -1672,7 +1672,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.errorDialog.show()
             elif message_data["type"] == "newUser":
                 self.getAvailablePlayers(message_data["connectedUsers"])
-            elif message_data["type"] == "requestToPlay":
+            elif message_data["type"] == "playRequest":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
                 if self.requestToPlayDialog.getAcceptGame():
