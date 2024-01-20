@@ -48,11 +48,9 @@ class Cell:
 class Maze:
     MAZETYPES = ["square", "hexagonal", "triangular", "octagonal"]
     def __init__(self, mazeType, gen_algorithm, solve_algorithm, mazeWidth, mazeHeight, mazeGrid=None):
-
         self.__type = self.MAZETYPES[mazeType-1]
         self.__mazeWidth = mazeWidth
         self.__mazeHeight = mazeHeight
-        
         self.__gen_algorithm_name = gen_algorithm
         self.__solve_algorithm_name = solve_algorithm
         self.__AlgorithmFactory = AlgorithmFactory(self.__gen_algorithm_name, self.__solve_algorithm_name)
@@ -111,6 +109,8 @@ class Maze:
         self.__validPath, self.__programStates = self.__curr
         self.__algorithm_route = [s[0] for s in self.__programStates]
         self.__algorithm_route_ids = [i.getID() for i in self.__algorithm_route]
+
+        print(self.__grid)
 
     def getHint(self, current_cell):
         for n, i in enumerate(self.__algorithm_route_ids):
