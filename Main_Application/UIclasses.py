@@ -1523,7 +1523,7 @@ class Ui_RequestToPlayDialog(QDialog):
         self.text = text
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
-        self.acceptGame = None
+        self.acceptGameState = None
         self.setWindowTitle("Popup")
         self.setupUi()
 
@@ -1576,13 +1576,13 @@ class Ui_RequestToPlayDialog(QDialog):
         self.label.setText(_translate("Dialog", self.text))
 
     def acceptGame(self):
-        self.acceptGame = True
+        self.acceptGameState = True
 
     def rejectGame(self):
-        self.acceptGame = False
+        self.acceptGameState = False
 
     def getAcceptGame(self):
-        return self.acceptGame
+        return self.acceptGameState
     
 
 class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
