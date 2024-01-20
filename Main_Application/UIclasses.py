@@ -458,6 +458,10 @@ class UI():
             self.__cell_width = self.__maze_width / self.maze.getMazeWidth()
             self.__cell_height = self.__maze_height / self.maze.getMazeHeight()
             self.highlightVisitedCells()
+            
+            if self.__display_opponent_move:
+                self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
+
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
             pg.draw.rect(self.__screen, self.CHARACTERCOLOUR, (self.__current_cell.getID()[0] * self.__cell_width + 3, self.__current_cell.getID()[1] * self.__cell_height + 3, self.__cell_width, self.__cell_height))
@@ -489,10 +493,13 @@ class UI():
                 self.__current_cell_x += 0.5 * self.__cell_width
 
             self.__token_visited_cells_coords.append(self.__current_cell)
+            self.highlightVisitedCells()
+
+            if self.__display_opponent_move:
+                self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
 
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
-            self.highlightVisitedCells()
              
             self.drawHexagon(self.__current_cell_x, self.__current_cell_y, self.__cell_side_length, self.CHARACTERCOLOUR, character=True, fill=True)
            
@@ -520,7 +527,8 @@ class UI():
             self.__current_cell_base_point_1, self.__current_cell_base_point_2 = self.get_triangle_base_points(self.__current_cell.getID()[0], self.__current_cell.getID()[1])
             
             self.highlightVisitedCells()
-
+            if self.__display_opponent_move:
+                self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
             self.__current_cell_flipped = self.getCellFlipped(self.__current_cell)
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
@@ -539,9 +547,6 @@ class UI():
 
                     for c in self.__cell_connections:
                          self.draw_triangle_connection(self.maze.getGrid()[y][x], c, self.__cell_side_length)
-
-        if self.__display_opponent_move:
-            self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
 
     def scale_thickness(self):
         self.__potentialSquareMazeThickness = list(range(1, 7))
