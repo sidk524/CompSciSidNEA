@@ -1706,17 +1706,28 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         
     def getAvailablePlayers(self, players):
         print(players)
+
+        # Step 1: Clear existing buttons
+        for button in self.playerButtonDict.values():
+            button.setParent(None)  # This will remove the button from the layout
+            button.deleteLater()    # This will delete the button object
+
+        self.playerButtonDict.clear()  # Clear the dictionary
+
+        # Step 2: Add new buttons
         for player in players:
-                if player == None:
-                    continue
-                self.playerButtonFont = QtGui.QFont()
-                self.playerButtonFont.setPointSize(12)
-                playerButton = QtWidgets.QPushButton(player, self.centralwidget)
-                playerButton.setObjectName(f"button_{player}")
-                playerButton.clicked.connect(lambda checked, player=player: self.playerButtonClicked(player))
-                playerButton.setFont(self.playerButtonFont)
-                self.playerButtonDict[player] = playerButton
-                self.playersGroupBox.layout().addWidget(playerButton)
+            if player is None:
+                continue
+
+            self.playerButtonFont = QtGui.QFont()
+            self.playerButtonFont.setPointSize(12)
+            playerButton = QtWidgets.QPushButton(player, self.centralwidget)
+            playerButton.setObjectName(f"button_{player}")
+            playerButton.clicked.connect(lambda checked, player=player: self.playerButtonClicked(player))
+            playerButton.setFont(self.playerButtonFont)
+            self.playerButtonDict[player] = playerButton
+            self.playersGroupBox.layout().addWidget(playerButton)
+
     
     def BackButton_clicked(self):
         self.sendWebSocketMessage({"type": "logout", "user": self.username})
