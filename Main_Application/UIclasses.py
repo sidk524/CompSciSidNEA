@@ -888,11 +888,14 @@ class Ui_MazeSolveWindow(QMainWindow):
 
     def startPygameLoop(self):
         if self.mazeGrid != None:
-            self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight, grid=self.mazeGrid)
-        self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
-        self.maze.generate()
+            self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight, mazeGrid=self.mazeGrid)
+        else:
+            self.maze = Mazes.Maze(mazeType=self.mazeType, gen_algorithm=self.genAlgorithm, solve_algorithm=self.solveAlgorithm, mazeWidth=self.mazeWidth, mazeHeight=self.mazeHeight)
+            self.maze.generate()
+
         if self.online and self.mazeGrid == None:
             self.LANInstance.sendMaze(self.mazeToJSON(self.maze))
+
         self.UIinstance.initPygame(self.maze)
 
         self.pygame_timer = QTimer(self)
@@ -1376,7 +1379,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
         if self.online:
             self.BackButton.setVisible(False)
-            self.dialog = Ui_Dialog(f"Creating maze for play against {self.LANInstance.getOpponentName()}")
+            self.dialog = Ui_Dialog(f"Creating maze for play against {self.LANInstance.getOpponentName()}", self.desktopWidth, self.desktopHeight)
         else:
             self.BackButton.clicked.connect(self.BackButton_clicked)
 
@@ -1451,6 +1454,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         else:
             self.mazeType = None
         if self.genAlgorithm != None and self.solveAlgorithm != None and self.mazeType != None:
+            
             self.hide()
             self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, self.genAlgorithm, self.solveAlgorithm, self.mazeType, self.MazeSizeSliderX.value(), self.MazeSizeSliderY.value(), self.LANInstance, self.online)
             self.ForwardWindow.show()
@@ -1458,6 +1462,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.Dialog = QtWidgets.QDialog()
             self.error = Ui_Dialog("Please select all options!", self.desktopWidth, self.desktopHeight)
             self.error.show()
+
 
     def getMazeConfig(self):
         if self.mazeConfig != None:
@@ -1683,15 +1688,16 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
                 else:
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
+                self.requestToPlayDialog.close()
             elif message_data["type"] == "confirmationAcceptRequest":
-                try:
+                #try:
                     self.hide()
                     self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
                     self.ForwardWindow.show()
-                except Exception as e:
-                    print(e)
-                    self.errorDialog = Ui_Dialog("Error confirming game! Try again.", self.desktopWidth, self.desktopHeight)
-                    self.errorDialog.show()
+                # except Exception as e:
+                #     print(e)
+                #     self.errorDialog = Ui_Dialog("Error confirming game! Try again.", self.desktopWidth, self.desktopHeight)
+                #     self.errorDialog.show()
             elif message_data["type"] == "confirmationRejectRequest":
                 try:
                     self.errorDialog = Ui_Dialog("Game rejected!")
@@ -1734,7 +1740,6 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             self.playerButtonDict[player] = playerButton
             self.playersGroupBox.layout().addWidget(playerButton)
 
-    
     def BackButton_clicked(self):
         self.sendWebSocketMessage({"type": "logout", "user": self.username})
         
