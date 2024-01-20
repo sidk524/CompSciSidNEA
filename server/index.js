@@ -6,6 +6,14 @@ const wss = new WebSocket.Server({ port: 8080 });
 var connectedUsers = new Map();
 var games = new Map();
 
+function getKeyByValue(map, searchValue) {
+  for (let [key, value] of map.entries()) {
+      if (value === searchValue) {
+          return key;
+      }
+  }
+  return null; // Return null if the value isn't found
+}
 
 wss.on('connection', function connection(ws) {
   console.log("Connection established");
@@ -19,7 +27,12 @@ wss.on('connection', function connection(ws) {
           connectedUsers.set(sendingClient, ws);
           wss.clients.forEach(function each(client) {
             if (client.readyState === WebSocket.OPEN && client != ws)  { 
-              client.send(JSON.stringify({type: "newUser", connectedUsers: Array.from(connectedUsers.keys())}));
+              var usersToSend = Array.from(connectedUsers.keys());
+              var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
+              if (index > -1) {
+                usersToSend.splice(index, 1);
+              }
+              client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
             }
           });
         
