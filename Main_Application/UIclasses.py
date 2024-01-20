@@ -1727,7 +1727,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 elif self.mazeType == 3:
                     self.cellMaxConnections = 3
                 self.grid = dict()
-
+                
+                print(self.JSONgrid)
                 # Create the grid
                 for y in range(message_data['maze_height']):
                     self.grid[y] = []
