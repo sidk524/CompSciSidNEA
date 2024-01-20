@@ -1782,6 +1782,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def sendCurrentCell(self, currentCellID):
         self.sendWebSocketMessage({"type": "sendMove", "user": self.username, "opponent": self.currentOpponent, "currentCell": currentCellID})
 
+    def getOpponentMove(self):
+        return self.currentOpponentCellID
+
     def getAvailablePlayers(self, players):
         print(players)
 
