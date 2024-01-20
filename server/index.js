@@ -62,7 +62,7 @@ wss.on('connection', function connection(ws) {
       } else if (msg.type == "acceptGame") {
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
-            client.send(JSON.stringify({type: "confirmationAcceptRequest", user: sendingClien, opponent: msg.opponent}));
+            client.send(JSON.stringify({type: "confirmationAcceptRequest", user: sendingClient, opponent: msg.opponent}));
             games.set(sendingClient, msg.opponent);
           }
         });

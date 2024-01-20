@@ -1523,6 +1523,7 @@ class Ui_RequestToPlayDialog(QDialog):
         self.text = text
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
+        self.acceptGame = None
         self.setWindowTitle("Popup")
         self.setupUi()
 
@@ -1675,11 +1676,15 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "playRequest":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
+                while self.requestToPlayDialog.getAcceptGame() == None:
+                    QtWidgets.QApplication.processEvents()
+                
                 if self.requestToPlayDialog.getAcceptGame():
                     self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
                 else:
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
             elif message_data["type"] == "confirmationAcceptRequest":
+                print(message_data)
                 if message_data["success"]:
                     self.hide()
                     self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
