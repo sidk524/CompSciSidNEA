@@ -1730,9 +1730,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
                 # Create the grid
                 for y in range(message_data['maze_height']):
-                    self.grid[y] = dict()
-                    for x in range(len(message_data['grid'][y])):
-                        self.grid[y][x] = Mazes.Cell(self.cellMaxConnections, (x, y))
+                    self.grid[y] = []
+                    for x in range(len(self.JSONgrid[y])):
+                        self.grid[y].append(Mazes.Cell(self.cellMaxConnections, (x, y)))
 
                 # Set the connections
                 for y in range(len(self.grid)):
@@ -1744,16 +1744,17 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
                 self.ForwardWindow.show()
 
-        # for y in range(maze.getMazeHeight()):
-        #     mazeDict["grid"].append([])
-        #     for x in range(len(maze.getGrid()[y])):
-        #         cell = maze.getGrid()[y][x]
-        #         cellDict = {
-        #             "id": cell.getID(),
-        #             "connections": [str(c) for c in cell.getConnections()]
-        #         }
-        #         mazeDict["grid"][y].append(cellDict)
+#   for y in range(maze.getMazeHeight()):
+#             mazeDict["grid"][y] = []
+#             for x in range(len(maze.getGrid()[y])):
+#                 cell = maze.getGrid()[y][x]
+#                 cellDict = {
+#                     "id": cell.getID(),
+#                     "connections": [str(c) for c in cell.getConnections()]
+#                 }
+#                 mazeDict["grid"][y].append(cellDict)
 
+#         return mazeDict
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
