@@ -1684,19 +1684,18 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 else:
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
             elif message_data["type"] == "confirmationAcceptRequest":
-                print(message_data)
-                if message_data["success"]:
+                try:
                     self.hide()
                     self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
                     self.ForwardWindow.show()
-                else:
+                except:
                     self.errorDialog = Ui_Dialog("Error confirming game! Try again.")
                     self.errorDialog.show()
             elif message_data["type"] == "confirmationRejectRequest":
-                if message_data["success"]:
+                try:
                     self.errorDialog = Ui_Dialog("Game rejected!")
                     self.errorDialog.show()
-                else:
+                except:
                     self.errorDialog = Ui_Dialog("Error rejecting game! Try again.")
                     self.errorDialog.show()
             elif message_data["type"] == "maze":
