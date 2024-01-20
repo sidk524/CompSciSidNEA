@@ -1723,7 +1723,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             self.playerButtonFont.setPointSize(12)
             playerButton = QtWidgets.QPushButton(player, self.centralwidget)
             playerButton.setObjectName(f"button_{player}")
-            playerButton.clicked.connect(lambda checked, player=player: self.playerButtonClicked(player))
+            playerButton.clicked.connect(partial(self.playerButtonClicked, player))
             playerButton.setFont(self.playerButtonFont)
             self.playerButtonDict[player] = playerButton
             self.playersGroupBox.layout().addWidget(playerButton)
