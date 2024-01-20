@@ -596,6 +596,7 @@ class UI():
 
     def updatePygame(self):
         if self.__running:
+            
             self.displayMaze()
             self.cell_hover()
             pg.display.flip()
@@ -960,6 +961,11 @@ class Ui_MazeSolveWindow(QMainWindow):
             if self.solveAlgorithm != "manual":
                 self.update_program_state_timer.stop()
                 self.incorrect_moves_timer.stop()
+            
+            if self.online:
+                self.update_opponent_timer.stop()
+                self.get_opponent_move_timer.stop()
+                self.LANInstance.sendWin()
                 
             self.hide()
             self.NextWindow = Ui_DialogMazeSolved(self.desktopWidth, self.desktopHeight, self.__summaryStats, self.UIinstance)
@@ -1636,6 +1642,76 @@ class Ui_RequestToPlayDialog(QDialog):
     def getAcceptGame(self):
         return self.acceptGameState
     
+class Ui_OpponentWonDialog(QDialog):
+    def __init__(self, text, desktopWidth, desktopHeight):
+        super(Ui_OpponentWonDialog, self).__init__()
+        self.text = text
+        self.desktopWidth = desktopWidth
+        self.desktopHeight = desktopHeight
+        self.continuePlayingState = None
+        self.setWindowTitle("Popup")
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("Dialog")
+        self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
+
+        # Main vertical layout
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setObjectName("verticalLayout")
+
+        # Spacer item for vertical alignment
+        self.verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(self.verticalSpacer)
+
+        # Label
+        self.label = QtWidgets.QLabel(self.text, self)
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.label.setFont(font)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
+
+        # Spacer item for vertical alignment
+        self.verticalSpacer2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(self.verticalSpacer2)
+
+        # Button Box
+        self.buttonBox = QtWidgets.QDialogButtonBox(self)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        # Create and add 'Accept' button
+        self.acceptButton = self.buttonBox.addButton("Continue playing", QtWidgets.QDialogButtonBox.AcceptRole)
+        self.acceptButton.clicked.connect(self.continuePlaying)  # Connect to the accept slot
+
+        # Create and add 'Reject' button
+        self.rejectButton = self.buttonBox.addButton("Back to menu", QtWidgets.QDialogButtonBox.RejectRole)
+        self.rejectButton.clicked.connect(self.backToMenu)  # Connect to the reject slot
+        self.buttonBox.setObjectName("buttonBox")
+        self.buttonBox.setLayoutDirection(QtCore.Qt.LeftToRight)  # Right-align the buttons
+        self.verticalLayout.addWidget(self.buttonBox)
+
+        QtCore.QMetaObject.connectSlotsByName(self)
+        self.retranslateUi()
+        
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label.setText(_translate("Dialog", self.text))
+
+    def continuePlaying(self):
+        self.continuePlayingState = True
+
+    def backToMenu(self):
+        self.mainMenu = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+        self.mainMenu.show()
+        self.close()
+        self.continuePlayingState = False
+    
+    def getContinuePlayingState(self):
+        return self.continuePlayingState
+    
 
 class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def __init__(self, desktopWidth, desktopHeight, username, password):
@@ -1743,7 +1819,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.hide()
                     self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
                     self.ForwardWindow.show()
-         
+
             elif message_data["type"] == "confirmationRejectRequest":
                 try:
                     self.errorDialog = Ui_Dialog("Game rejected!")
@@ -1783,6 +1859,19 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.ForwardWindow.show()
             elif message_data["type"] == "move":
                 self.currentOpponentCellID = message_data["move"]
+            elif message_data["type"] == "win":
+                self.winDialog = Ui_OpponentWonDialog(f"{message_data['user']} won the game!", self.desktopWidth, self.desktopHeight)
+                self.winDialog.show()
+                while self.winDialog.getContinuePlayingState() == None:
+                    QtWidgets.QApplication.processEvents()
+                if self.winDialog.getContinuePlayingState():
+                    pass
+                else:
+                    self.hide()
+                    self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+                    self.BackWindow.show()
+                    
+
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
@@ -1795,7 +1884,6 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
     def getAvailablePlayers(self, players):
         print(players)
-
         # Step 1: Clear existing buttons
         for button in self.playerButtonDict.values():
             button.setParent(None)  # This will remove the button from the layout
@@ -1832,6 +1920,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
     def sendMaze(self, maze):
         self.sendWebSocketMessage({"type": "sendMaze", "user": self.username, "opponent": self.opponent, "maze": maze})
+
+    def sendWin(self):
+        self.sendWebSocketMessage({"type": "win", "user": self.username, "opponent": self.opponent})
 
     def resizeEvent(self, event):
         QtWidgets.QMainWindow.resizeEvent(self,event)
