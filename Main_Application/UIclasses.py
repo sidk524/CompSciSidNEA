@@ -229,8 +229,6 @@ class UI():
         if not character:
             self.__points.append(hexagon_points)
 
-
-
     def draw_hexagon_connection(self, cell1, cell2, x, y, size, offsetWidth, offsetHeight):
         # draw a white line between the two cells
         self.__cell1_x, self.__cell1_y = x, y
@@ -460,7 +458,8 @@ class UI():
             self.highlightVisitedCells()
             
             if self.__display_opponent_move:
-                self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
+                if self.__opponent_current_cell != None:
+                    self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
 
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
@@ -496,7 +495,8 @@ class UI():
             self.highlightVisitedCells()
 
             if self.__display_opponent_move:
-                self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
+                if self.__opponent_current_cell != None:
+                    self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
 
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
@@ -528,7 +528,8 @@ class UI():
             
             self.highlightVisitedCells()
             if self.__display_opponent_move:
-                self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
+                if self.__opponent_current_cell != None:
+                    self.highlightCell(self.__opponent_current_cell, colour=self.OPPONENTCOLOUR)
             self.__current_cell_flipped = self.getCellFlipped(self.__current_cell)
             if self.__show_hint:
                 self.highlightCell(self.__hint_cell, colour=self.HINT_COLOUR)
@@ -568,8 +569,9 @@ class UI():
 
         self.__show_distance_map = False
         self.__maze_width, self.__maze_height = self.__width, self.__height
-        self.__display_opponent_move = False
+        self.__display_opponent_move = True
 
+        self.__opponent_current_cell = None
         self.__addedPoints = False
         self.__incorrect_moves = 0
         self.__show_hint = False
@@ -692,8 +694,7 @@ class UI():
     def getCurrentCell(self):
         return self.__current_cell    
 
-    def displayOpponentMove(self, cellID):
-        self.__display_opponent_move = True
+    def updateOpponentMove(self, cellID):
         self.__opponent_current_cell = self.maze.getGrid()[cellID[1]][cellID[0]]
 
     def closeProgram(self):
@@ -902,6 +903,7 @@ class Ui_MazeSolveWindow(QMainWindow):
                 mazeDict["grid"][y].append(cellDict)
 
         return mazeDict
+    
     def about_action_triggered(self):
         pass
 
@@ -947,7 +949,7 @@ class Ui_MazeSolveWindow(QMainWindow):
     def getOpponentMove(self):
         self.opponentMove = self.LANInstance.getOpponentMove()
         if self.opponentMove != None:
-            self.UIinstance.displayOpponentMove(self.opponentMove)
+            self.UIinstance.updateOpponentMove(self.opponentMove)
 
 
     def updatePygame(self):
