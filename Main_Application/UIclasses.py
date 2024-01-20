@@ -937,7 +937,7 @@ class Ui_MazeSolveWindow(QMainWindow):
             
             self.get_opponent_move_timer = QTimer(self)
             self.get_opponent_move_timer.timeout.connect(lambda: self.getOpponentMove())
-            self.get_opponent_move_timer.start(100)
+            self.get_opponent_move_timer.start(104)
 
     def updateOpponent(self):
         self.currentCellID = self.UIinstance.getCurrentCell().getID()
