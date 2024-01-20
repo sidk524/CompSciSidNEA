@@ -1739,7 +1739,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     for x in range(len(self.grid[y])):
                         for connection in self.JSONgrid[y][x]['connections']:
                             print(connection)
-                            self.grid[y][x].addConnection(self.grid[int(connection[1])][int(connection[4])])
+                            self.grid[y][x].addConnection(self.grid[int(connection[4])][int(connection[1])])
 
                 self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
                 self.ForwardWindow.show()
