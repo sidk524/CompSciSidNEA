@@ -1739,7 +1739,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
                 self.requestToPlayDialog.close()
             elif message_data["type"] == "confirmationAcceptRequest":
-                    self.currentOpponent = message_data["opponent"] 
+                    self.currentOpponent = message_data["user"] 
                     self.hide()
                     self.ForwardWindow = Ui_GenerateMazeMenu(self.desktopWidth, self.desktopHeight, self, online=True)
                     self.ForwardWindow.show()
