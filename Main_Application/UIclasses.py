@@ -853,6 +853,14 @@ class Ui_MazeSolveWindow(QMainWindow):
         super(Ui_MazeSolveWindow, self).resizeEvent(event)
 
     def mazeToJSON(self, maze):
+        self.mazeType = maze.getMazeType()
+        if self.mazeType == "square":
+            self.mazeType = 1
+        elif self.mazeType == "hexagonal":
+            self.mazeType = 2
+        elif self.mazeType == "triangular":
+            self.mazeType = 3
+            
         mazeDict = {
             "maze_type": maze.getMazeType(),
             "maze_width": maze.getMazeWidth(),
