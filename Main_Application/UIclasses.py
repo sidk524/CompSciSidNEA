@@ -1718,7 +1718,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "maze":
                 self.hide()
                 message_data = message_data["maze"]
-                self.JSONgrid = message_data['grid']
+                self.JSONgrid = dict(message_data['grid'])
                 self.mazeType = message_data['maze_type']
                 if self.mazeType == 1:
                     self.cellMaxConnections = 4
@@ -1732,13 +1732,13 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 # Create the grid
                 for y in range(message_data['maze_height']):
                     self.grid[y] = []
-                    for x in range(len(self.JSONgrid[y])):
+                    for x in range(len(self.JSONgrid[str(y)])):
                         self.grid[y].append(Mazes.Cell(self.cellMaxConnections, (x, y)))
 
                 # Set the connections
                 for y in range(len(self.grid)):
                     for x in range(len(self.grid[y])):
-                        for connection in self.JSONgrid[y][x]['connections']:
+                        for connection in self.JSONgrid[str(y)][x]['connections']:
                             print(connection)
                             self.grid[y][x].addConnection(self.grid[int(connection[4])][int(connection[1])])
 
