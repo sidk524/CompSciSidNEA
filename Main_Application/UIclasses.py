@@ -1686,6 +1686,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.errorDialog.show()
             elif message_data["type"] == "newUser":
                 self.getAvailablePlayers(message_data["connectedUsers"])
+
             elif message_data["type"] == "playRequest":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
@@ -1717,8 +1718,40 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "maze":
                 self.hide()
                 message_data = message_data["maze"]
-                self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], message_data['grid'], self, online=True)
+                self.JSONgrid = message_data['grid']
+                self.mazeType = message_data['maze_type']
+                if self.mazeType == 1:
+                    self.cellMaxConnections = 4
+                elif self.mazeType == 2:
+                    self.cellMaxConnections = 6
+                elif self.mazeType == 3:
+                    self.cellMaxConnections = 3
+                self.grid = dict()
+
+                # Create the grid
+                for y in range(message_data['maze_height']):
+                    self.grid[y] = dict()
+                    for x in range(len(message_data['grid'][y])):
+                        self.grid[y][x] = Mazes.Cell(self.cellMaxConnections, (x, y))
+                        
+                # Set the connections
+                for y in range(len(self.grid)):
+                    for x in range(len(self.grid[y])):
+                        for connection in self.JSONgrid[y][x]['connections']:
+                            self.grid[y][x].addConnection(self.grid[int(connection[1])][int(connection[0])])
+
+                self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
                 self.ForwardWindow.show()
+
+        # for y in range(maze.getMazeHeight()):
+        #     mazeDict["grid"].append([])
+        #     for x in range(len(maze.getGrid()[y])):
+        #         cell = maze.getGrid()[y][x]
+        #         cellDict = {
+        #             "id": cell.getID(),
+        #             "connections": [str(c) for c in cell.getConnections()]
+        #         }
+        #         mazeDict["grid"][y].append(cellDict)
 
 
         except json.JSONDecodeError as e:
