@@ -549,8 +549,10 @@ class UI():
         self.__triangularMazeThickness = self.__potentialTriangularMazeThickness[::-1][min(int(self.DESKTOP_WIDTH/ self.__width)-1, len(self.__potentialTriangularMazeThickness)-1)]
 
 
-    def initPygame(self, maze=None):
+    def initPygame(self, maze=None, gui=False):
         pg.init()
+        if gui:
+            self.UiType = "GUI"
         self.maze = maze
         self.__infoObject = pg.display.Info()
         self.__width, self.__height = self.__infoObject.current_w*0.6, self.__infoObject.current_h*0.8
@@ -904,7 +906,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.online and self.mazeGrid == None:
             self.LANInstance.sendMaze(self.mazeToJSON(self.maze))
 
-        self.UIinstance.initPygame(self.maze)
+        self.UIinstance.initPygame(self.maze, gui=True)
 
         self.pygame_timer = QTimer(self)
         self.pygame_timer.timeout.connect(lambda: self.updatePygame())
