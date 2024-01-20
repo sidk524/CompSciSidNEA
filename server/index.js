@@ -37,10 +37,21 @@ wss.on('connection', function connection(ws) {
           });
         
       } else if (msg.type == "logout") {
+        console.log("Logout request received");
         if (connectedUsers.delete(sendingClient)){
           ws.send(JSON.stringify({type: "logout", success: true}));
         } else {
           ws.send(JSON.stringify({type: "logout", success: false}));
+        }
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN && client != ws)  { 
+            var usersToSend = Array.from(connectedUsers.keys());
+            var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
+            if (index > -1) {
+              usersToSend.splice(index, 1);
+            }
+            client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
+          }
         }
       } else if (msg.type == "requestToPlay") {
         wss.clients.forEach(function each(client) {
