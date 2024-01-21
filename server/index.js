@@ -64,6 +64,7 @@ wss.on('connection', function connection(ws) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
             client.send(JSON.stringify({type: "confirmationAcceptRequest", user: sendingClient, opponent: msg.opponent}));
             games.set(sendingClient, msg.opponent);
+            games.set(msg.opponent, sendingClient);
           }
         });
       } else if (msg.type == "rejectGame") {
@@ -109,7 +110,19 @@ wss.on('connection', function connection(ws) {
       console.log("disconnectedUser", disconnectedUser);
       if (disconnectedUser) {
           connectedUsers.delete(disconnectedUser);
+          // check if the disconnected user was in a game
+          let opponent = games.get(disconnectedUser);
+          if (opponent) {
+            games.delete(opponent);
+            wss.clients.forEach(function each(client) {
+              if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(opponent))  { 
+                client.send(JSON.stringify({type: "opponentDisconnected", user: disconnectedUser}));
+              }
+            });
+          }
+
       }
+
   });
   
 

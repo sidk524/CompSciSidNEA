@@ -944,6 +944,10 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.check_opponent_win_timer = QTimer(self)
             self.check_opponent_win_timer.timeout.connect(lambda: self.checkOpponentWin())
             self.check_opponent_win_timer.start(1000)
+            
+            self.check_opponent_disconnected_timer = QTimer(self)
+            self.check_opponent_disconnected_timer.timeout.connect(lambda: self.checkOpponentDisconnected())
+            self.check_opponent_disconnected_timer.start(1000)
 
     def updateOpponent(self):
         self.currentCellID = self.UIinstance.getCurrentCell().getID()
@@ -956,6 +960,22 @@ class Ui_MazeSolveWindow(QMainWindow):
 
     def checkOpponentWin(self):
         if self.LANInstance.checkOpponentWin():
+            self.opponentWon = True
+            self.opponentWonDialog = Ui_Dialog("Your opponent has won!", self.desktopWidth, self.desktopHeight)
+            self.opponentWonDialog.show()
+            while self.opponentWonDialog.getContinuePlayingState() == None:
+                pass
+            if self.opponentWonDialog.getContinuePlayingState():
+                self.opponentWonDialog.close()
+            else:
+                self.opponentWonDialog.close()
+                self.quitSolving()    
+            
+
+
+    def checkOpponentDisconnected(self):
+        if self.LANInstance.checkOpponentDisconnected():
+            self.LANInstance.sendWin()
             self.opponentWon = True
 
     def updatePygame(self):
@@ -1725,7 +1745,6 @@ class Ui_OpponentWonDialog(QDialog):
     def getContinuePlayingState(self):
         return self.continuePlayingState
     
-
 class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def __init__(self, desktopWidth, desktopHeight, username, password):
         super(Ui_LANAndWebSockets, self).__init__()
@@ -1887,7 +1906,11 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
                     self.BackWindow.show()
             elif message_data["type"] == "keepalive":
-                self.sendWebSocketMessage({"type": "keepalive", "user": self.username, "alive": True}) 
+                self.sendWebSocketMessage({"type": "keepalive", "user": self.username, "alive": True})
+            elif message_data["type"] == "opponentDisconnected":
+                self.errorDialog = Ui_OpponentWonDialog(f"{message_data['user']} disconnected!", self.desktopWidth, self.desktopHeight)
+                self.errorDialog.show()
+                
                     
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
