@@ -881,7 +881,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.__maze.generate()
 
         if self.__online and self.__mazeGrid == None:
-            self.__LANInstance.sendMaze(self.__mazeToJSON(self.__maze))
+            self.__LANInstance.sendMaze(self.mazeToJSON(self.__maze))
 
         self.__UIinstance.initPygame(self.__maze, gui=True)
 
