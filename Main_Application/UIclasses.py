@@ -717,6 +717,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.LANInstance = LANInstance
         self.mazeGrid = mazeGrid
         self.online = online
+        self.opponentWon = False
         self.setWindowTitle("CompSci Maze Master")
         self.setupUi()
         self.startPygameLoop()
@@ -962,13 +963,12 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.pygame_timer.stop()
             self.hide_distance_map_timer.stop()
             self.get_time_taken_timer.stop()
-            
             self.__summaryStats = self.UIinstance.quitPygame()
 
             if self.solveAlgorithm != "manual":
                 self.update_program_state_timer.stop()
                 self.incorrect_moves_timer.stop()
-            
+
             if self.online:
                 self.update_opponent_timer.stop()
                 self.get_opponent_move_timer.stop()
