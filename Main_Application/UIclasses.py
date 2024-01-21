@@ -793,7 +793,6 @@ class Ui_MazeSolveWindow(QMainWindow):
         actionLayout.addWidget(self.quitButton)
 
         # Labels
-       
         self.timeTakenLabel = QLabel("Time: 0s", self.summaryBox)
 
         # Add Labels to layout
@@ -842,7 +841,7 @@ class Ui_MazeSolveWindow(QMainWindow):
 
     def onResize(self, event):
         # Update font size based on window size
-        base_font_size = max(min(self.width() / 80, self.height() / 80), 8)  # Use the smaller dimension to scale font        font = QtGui.QFont()
+        base_font_size = max(min(self.width() / 80, self.height() / 80), 14)  # Use the smaller dimension to scale font      
         font = QtGui.QFont()
 
         font.setPointSize(base_font_size)
