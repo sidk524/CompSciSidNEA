@@ -1755,6 +1755,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.currentOpponent = None
         self.opponentWon = False
         self.opponentDisconnected = False
+        self.mazeReceived = False
 
         self.setWindowTitle("Play over LAN: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
@@ -1860,33 +1861,35 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.errorDialog.show()
             elif message_data["type"] == "maze":
                 self.hide()
-                print("Received maze")
-                message_data = message_data["maze"]
-                self.JSONgrid = dict(message_data['grid'])
-                self.mazeType = message_data['maze_type']
-                if self.mazeType == 1:
-                    self.cellMaxConnections = 4
-                elif self.mazeType == 2:
-                    self.cellMaxConnections = 6
-                elif self.mazeType == 3:
-                    self.cellMaxConnections = 3
-                self.grid = dict()
-                
-                print(self.JSONgrid)
-                # Create the grid
-                for y in range(message_data['maze_height']):
-                    self.grid[y] = []
-                    for x in range(len(self.JSONgrid[str(y)])):
-                        self.grid[y].append(Mazes.Cell(self.cellMaxConnections, (x, y)))
+                if not(self.mazeReceived):
+                    self.mazeReceived = True
+                    print("Received maze")
+                    message_data = message_data["maze"]
+                    self.JSONgrid = dict(message_data['grid'])
+                    self.mazeType = message_data['maze_type']
+                    if self.mazeType == 1:
+                        self.cellMaxConnections = 4
+                    elif self.mazeType == 2:
+                        self.cellMaxConnections = 6
+                    elif self.mazeType == 3:
+                        self.cellMaxConnections = 3
+                    self.grid = dict()
+                    
+                    print(self.JSONgrid)
+                    # Create the grid
+                    for y in range(message_data['maze_height']):
+                        self.grid[y] = []
+                        for x in range(len(self.JSONgrid[str(y)])):
+                            self.grid[y].append(Mazes.Cell(self.cellMaxConnections, (x, y)))
 
-                # Set the connections
-                for y in range(len(self.grid)):
-                    for x in range(len(self.grid[y])):
-                        for connection in self.JSONgrid[str(y)][x]['connections']:
-                            print(connection)
-                            self.grid[y][x].addConnection(self.grid[int(connection[4])][int(connection[1])])
+                    # Set the connections
+                    for y in range(len(self.grid)):
+                        for x in range(len(self.grid[y])):
+                            for connection in self.JSONgrid[str(y)][x]['connections']:
+                                print(connection)
+                                self.grid[y][x].addConnection(self.grid[int(connection[4])][int(connection[1])])
 
-                self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
+                    self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
             elif message_data["type"] == "move":
                 self.currentOpponentCellID = message_data["move"]
             elif message_data["type"] == "win":

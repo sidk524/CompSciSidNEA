@@ -74,11 +74,11 @@ wss.on('connection', function connection(ws) {
           }
         });
       } else if (msg.type == "sendMaze"){
-        console.log("sendMaze received", msg.opponent, connectedUsers.get(msg.opponent));
+        console.log("sendMaze received", msg.opponent);
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
             client.send(JSON.stringify({type: "maze", maze: msg.maze}));
-            console.log("sendMaze sent", msg.opponent, connectedUsers.get(msg.opponent));
+            console.log("sendMaze sent", msg.opponent);
           }
         });
       } else if (msg.type == "sendMove"){
