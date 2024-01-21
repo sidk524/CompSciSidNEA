@@ -15,6 +15,35 @@ function getKeyByValue(map, searchValue) {
   return null; // Return null if the value isn't found
 }
 
+function userLogout(ws) {
+
+  let disconnectedUser = getKeyByValue(connectedUsers, ws);
+  console.log("disconnectedUser", disconnectedUser);
+  if (disconnectedUser) {
+      connectedUsers.delete(disconnectedUser);
+      // check if the disconnected user was in a game
+      let opponent = games.get(disconnectedUser);
+      if (opponent) {
+        games.delete(opponent);
+        games.delete(disconnectedUser);
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(opponent))  { 
+            client.send(JSON.stringify({type: "opponentDisconnected", user: disconnectedUser}));
+          }
+        });
+      }
+
+  } wss.clients.forEach(function each(client) {
+    if (client.readyState === WebSocket.OPEN && client != ws)  { 
+      var usersToSend = Array.from(connectedUsers.keys());
+      var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
+      if (index > -1) {
+        usersToSend.splice(index, 1);
+      }
+      client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
+    }
+  });
+}
 wss.on('connection', function connection(ws) {
   console.log("Connection established");
   ws.on('message', function incoming(message) {
@@ -37,23 +66,7 @@ wss.on('connection', function connection(ws) {
           });
         
       } else if (msg.type == "logout") {
-        console.log("Logout request received");
-        if (connectedUsers.delete(sendingClient)){
-          ws.send(JSON.stringify({type: "logout", success: true}));
-        } else {
-          ws.send(JSON.stringify({type: "logout", success: false}));
-        }
-        ws.close();
-        wss.clients.forEach(function each(client) {
-          if (client.readyState === WebSocket.OPEN && client != ws)  { 
-            var usersToSend = Array.from(connectedUsers.keys());
-            var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
-            if (index > -1) {
-              usersToSend.splice(index, 1);
-            }
-            client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
-          }
-        }); 
+        userLogout(ws);
       } else if (msg.type == "requestToPlay") {
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
@@ -108,34 +121,7 @@ wss.on('connection', function connection(ws) {
   });
 
   ws.on('close', () => {
-
-      let disconnectedUser = getKeyByValue(connectedUsers, ws);
-      console.log("disconnectedUser", disconnectedUser);
-      if (disconnectedUser) {
-          connectedUsers.delete(disconnectedUser);
-          // check if the disconnected user was in a game
-          let opponent = games.get(disconnectedUser);
-          if (opponent) {
-            games.delete(opponent);
-            games.delete(disconnectedUser);
-            wss.clients.forEach(function each(client) {
-              if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(opponent))  { 
-                client.send(JSON.stringify({type: "opponentDisconnected", user: disconnectedUser}));
-              }
-            });
-          }
-
-      } wss.clients.forEach(function each(client) {
-        if (client.readyState === WebSocket.OPEN && client != ws)  { 
-          var usersToSend = Array.from(connectedUsers.keys());
-          var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
-          if (index > -1) {
-            usersToSend.splice(index, 1);
-          }
-          client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
-        }
-      });
-
+    userLogout(ws);
   });
   
 } );  
@@ -155,4 +141,3 @@ const interval = setInterval(function ping() {
 wss.on('close', function close() {
   clearInterval(interval);
 });
-

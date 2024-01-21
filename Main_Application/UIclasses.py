@@ -13,6 +13,7 @@ import sys
 import re
 import json
 import requests
+import ast
 from screeninfo import get_monitors
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebSockets
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow, QWidget, QDialog, QGroupBox, QGridLayout, QPushButton, QLabel, QVBoxLayout
@@ -1895,8 +1896,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     for y in range(len(self.grid)):
                         for x in range(len(self.grid[y])):
                             for connection in self.JSONgrid[str(y)][x]['connections']:
-                                print(connection)
-                                self.grid[y][x].addConnection(self.grid[int(connection[4])][int(connection[1])])
+                                connection = ast.literal_eval(connection)
+                                self.grid[y][x].addConnection(self.grid[connection[1]][connection[0]])
 
                     self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
             elif message_data["type"] == "move":
