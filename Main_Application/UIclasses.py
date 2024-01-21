@@ -1037,8 +1037,7 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.get_opponent_move_timer.stop()
             self.check_opponent_win_timer.stop()
             self.check_opponent_disconnected_timer.stop()
-            if not(self.opponentWon):
-                self.LANInstance.sendWin()
+            
             self.LANInstance.logout()
 
         self.pygame_timer.stop()
