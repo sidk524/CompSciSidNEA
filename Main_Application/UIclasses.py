@@ -1033,6 +1033,15 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.solveAlgorithm != "manual":
             self.incorrect_moves_timer.stop()
             self.update_program_state_timer.stop()
+        
+        if self.online:
+            self.update_opponent_timer.stop()
+            self.get_opponent_move_timer.stop()
+            self.check_opponent_win_timer.stop()
+            self.check_opponent_disconnected_timer.stop()
+            if not(self.opponentWon):
+                self.LANInstance.sendWin()
+            self.LANInstance.logout()
 
         self.pygame_timer.stop()
         self.hide_distance_map_timer.stop()
@@ -1862,6 +1871,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "maze":
                 self.hide()
                 if not(self.mazeReceived):
+                    self.loadingDialog.close()
                     self.mazeReceived = True
                     print("Received maze")
                     message_data = message_data["maze"]
@@ -1926,6 +1936,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
             self.requestToPlayDialog.close()
             self.check_accept_game_timer.stop()
+            self.loadingDialog = Ui_Dialog("Waiting for opponent to create maze...", self.desktopWidth, self.desktopHeight)
+            self.loadingDialog.show()
 
     def getAvailablePlayers(self, players):
         print(players)
