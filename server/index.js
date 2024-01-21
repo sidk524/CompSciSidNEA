@@ -135,6 +135,16 @@ const interval = setInterval(function ping() {
           let disconnectedUser = getKeyByValue(connectedUsers, ws);
           if (disconnectedUser) {
               connectedUsers.delete(disconnectedUser);
+              // check if the disconnected user was in a game
+              let opponent = games.get(disconnectedUser);
+              if (opponent) {
+                games.delete(opponent);
+                wss.clients.forEach(function each(client) {
+                  if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(opponent))  { 
+                    client.send(JSON.stringify({type: "opponentDisconnected", user: disconnectedUser}));
+                  }
+                });
+              }
           }
           return ws.terminate();
       }
@@ -147,3 +157,4 @@ const interval = setInterval(function ping() {
 wss.on('close', function close() {
   clearInterval(interval);
 });
+
