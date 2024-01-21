@@ -1910,8 +1910,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.sendWebSocketMessage({"type": "keepalive", "user": self.username, "alive": True})
             elif message_data["type"] == "opponentDisconnected":
                 self.opponentDisconnected = True
+                self.opponentDisconnectedDialog = Ui_Dialog("Opponent disconnected!", self.desktopWidth, self.desktopHeight)
+                self.opponentDisconnectedDialog.show()
                 
-                    
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
     

@@ -116,6 +116,7 @@ wss.on('connection', function connection(ws) {
           let opponent = games.get(disconnectedUser);
           if (opponent) {
             games.delete(opponent);
+            games.delete(disconnectedUser);
             wss.clients.forEach(function each(client) {
               if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(opponent))  { 
                 client.send(JSON.stringify({type: "opponentDisconnected", user: disconnectedUser}));
