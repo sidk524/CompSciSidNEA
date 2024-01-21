@@ -971,8 +971,6 @@ class Ui_MazeSolveWindow(QMainWindow):
                 self.opponentWonDialog.close()
                 self.quitSolving()    
             
-
-
     def checkOpponentDisconnected(self):
         if self.LANInstance.checkOpponentDisconnected():
             self.LANInstance.sendWin()
