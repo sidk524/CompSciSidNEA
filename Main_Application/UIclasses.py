@@ -1887,7 +1887,6 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                             self.grid[y][x].addConnection(self.grid[int(connection[4])][int(connection[1])])
 
                 self.ForwardWindow = Ui_MazeSolveWindow(self.desktopWidth, self.desktopHeight, message_data["gen_algorithm"], message_data["solve_algorithm"], message_data["maze_type"], message_data["maze_width"], message_data["maze_height"], self.grid, self, online=True)
-                self.ForwardWindow.show()
             elif message_data["type"] == "move":
                 self.currentOpponentCellID = message_data["move"]
             elif message_data["type"] == "win":
