@@ -1756,6 +1756,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.currentOpponentCellID = None
         self.currentOpponent = None
         self.opponentWon = False
+        self.opponentDisconnected = False
+
         self.setWindowTitle("Play over LAN: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
 
@@ -1894,22 +1896,13 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "move":
                 self.currentOpponentCellID = message_data["move"]
             elif message_data["type"] == "win":
-                self.winDialog = Ui_OpponentWonDialog(f"{message_data['user']} won the game!", self.desktopWidth, self.desktopHeight)
-                self.winDialog.show()
+                
                 self.opponentWon = True
-                while self.winDialog.getContinuePlayingState() == None:
-                    QtWidgets.QApplication.processEvents()
-                if self.winDialog.getContinuePlayingState():
-                    self.winDialog.close()
-                else:
-                    self.hide()
-                    self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
-                    self.BackWindow.show()
+                
             elif message_data["type"] == "keepalive":
                 self.sendWebSocketMessage({"type": "keepalive", "user": self.username, "alive": True})
             elif message_data["type"] == "opponentDisconnected":
-                self.errorDialog = Ui_OpponentWonDialog(f"{message_data['user']} disconnected!", self.desktopWidth, self.desktopHeight)
-                self.errorDialog.show()
+                self.opponentDisconnected = True
                 
                     
         except json.JSONDecodeError as e:
@@ -1924,6 +1917,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def checkOpponentWin(self):
         return self.opponentWon
 
+    def checkOpponentDisconnected(self):
+        return self.opponentDisconnected
+    
     def getAvailablePlayers(self, players):
         print(players)
         # Step 1: Clear existing buttons
