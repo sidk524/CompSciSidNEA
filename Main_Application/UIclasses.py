@@ -964,7 +964,7 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.opponentWonDialog = Ui_Dialog("Your opponent has won!", self.desktopWidth, self.desktopHeight)
             self.opponentWonDialog.show()
             while self.opponentWonDialog.getContinuePlayingState() == None:
-                pass
+                QtWidgets.QApplication.processEvents( QtCore.QEventLoop.AllEvents, 1000)
             if self.opponentWonDialog.getContinuePlayingState():
                 self.opponentWonDialog.close()
             else:
@@ -1842,13 +1842,15 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
                 while self.requestToPlayDialog.getAcceptGame() == None:
-                    QtWidgets.QApplication.processEvents()
+                    QtWidgets.QApplication.processEvents(QtCore.QEventLoop.AllEvents, 1000)
+
                 if self.requestToPlayDialog.getAcceptGame():
                     self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
                     self.currentOpponent = message_data["user"]
                 else:
                     self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
                 self.requestToPlayDialog.close()
+            
             elif message_data["type"] == "confirmationAcceptRequest":
                     self.currentOpponent = message_data["user"] 
                     self.hide()
