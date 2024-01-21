@@ -961,7 +961,7 @@ class Ui_MazeSolveWindow(QMainWindow):
     def checkOpponentWin(self):
         if self.LANInstance.checkOpponentWin():
             self.opponentWon = True
-            self.opponentWonDialog = Ui_Dialog("Your opponent has won!", self.desktopWidth, self.desktopHeight)
+            self.opponentWonDialog = Ui_OpponentWonDialog("Your opponent has won!", self.desktopWidth, self.desktopHeight)
             self.opponentWonDialog.show()
             while self.opponentWonDialog.getContinuePlayingState() == None:
                 QtWidgets.QApplication.processEvents( QtCore.QEventLoop.AllEvents, 1000)
