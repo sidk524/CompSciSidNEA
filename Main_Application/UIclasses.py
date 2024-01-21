@@ -1752,12 +1752,11 @@ class Ui_OpponentWonDialog(QDialog):
         return self.continuePlayingState
     
 class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight, username, password):
+    def __init__(self, desktopWidth, desktopHeight, username):
         super(Ui_LANAndWebSockets, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
         self.username = username
-        self.password = password
         self.playerButtonDict = {}
         self.currentOpponentCellID = None
         self.currentOpponent = None
@@ -2085,12 +2084,11 @@ class Ui_Login(QtWidgets.QDialog):
     
     def login(self):
         self.username = self.lineEdit.text()
-        self.password = self.lineEdit_2.text()
 
         self.usernameRegex = '^[a-zA-Z0-9]+$'
         if re.match(self.usernameRegex, self.username):
             self.hide()
-            self.ForwardWindow = Ui_LANAndWebSockets(self.desktopWidth, self.desktopHeight, self.username, self.password)
+            self.ForwardWindow = Ui_LANAndWebSockets(self.desktopWidth, self.desktopHeight, self.username)
             self.ForwardWindow.show()
         else:
             self.errorDialog = Ui_Dialog("Please enter a valid username!")
