@@ -132,21 +132,8 @@ wss.on('connection', function connection(ws) {
 const interval = setInterval(function ping() {
   wss.clients.forEach(function each(ws) {
       if (ws.isAlive === false) {
-          let disconnectedUser = getKeyByValue(connectedUsers, ws);
-          if (disconnectedUser) {
-              connectedUsers.delete(disconnectedUser);
-              // check if the disconnected user was in a game
-              let opponent = games.get(disconnectedUser);
-              if (opponent) {
-                games.delete(opponent);
-                wss.clients.forEach(function each(client) {
-                  if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(opponent))  { 
-                    client.send(JSON.stringify({type: "opponentDisconnected", user: disconnectedUser}));
-                  }
-                });
-              }
-          }
-          return ws.terminate();
+        
+          ws.terminate();
       }
 
       ws.isAlive = false;

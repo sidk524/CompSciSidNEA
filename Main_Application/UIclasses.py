@@ -1841,16 +1841,11 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "playRequest":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
-                while self.requestToPlayDialog.getAcceptGame() == None:
-                    QtWidgets.QApplication.processEvents(QtCore.QEventLoop.AllEvents, 1000)
 
-                if self.requestToPlayDialog.getAcceptGame():
-                    self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
-                    self.currentOpponent = message_data["user"]
-                else:
-                    self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
-                self.requestToPlayDialog.close()
-            
+                self.check_accept_game_timer = QtCore.QTimer()
+                self.check_accept_game_timer.timeout.connect(lambda: self.checkAcceptGame(message_data))
+                self.check_accept_game_timer.start(1000)
+
             elif message_data["type"] == "confirmationAcceptRequest":
                     self.currentOpponent = message_data["user"] 
                     self.hide()
@@ -1922,6 +1917,16 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def checkOpponentDisconnected(self):
         return self.opponentDisconnected
     
+    def checkAcceptGame(self, message_data):
+
+        if self.requestToPlayDialog.getAcceptGame():
+            self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
+            self.currentOpponent = message_data["user"]
+        else:
+            self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
+        self.requestToPlayDialog.close()
+        self.check_accept_game_timer.stop()
+
     def getAvailablePlayers(self, players):
         print(players)
         # Step 1: Clear existing buttons
