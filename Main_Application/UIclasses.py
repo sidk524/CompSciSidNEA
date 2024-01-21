@@ -1918,14 +1918,14 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         return self.opponentDisconnected
     
     def checkAcceptGame(self, message_data):
-
-        if self.requestToPlayDialog.getAcceptGame():
-            self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
-            self.currentOpponent = message_data["user"]
-        else:
-            self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
-        self.requestToPlayDialog.close()
-        self.check_accept_game_timer.stop()
+        if self.requestToPlayDialog.getAcceptGame() != None:
+            if self.requestToPlayDialog.getAcceptGame():
+                self.sendWebSocketMessage({"type": "acceptGame", "user": self.username, "opponent": message_data["user"]})
+                self.currentOpponent = message_data["user"]
+            else:
+                self.sendWebSocketMessage({"type": "rejectGame", "user": self.username, "opponent": message_data["user"]})
+            self.requestToPlayDialog.close()
+            self.check_accept_game_timer.stop()
 
     def getAvailablePlayers(self, players):
         print(players)
