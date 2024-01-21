@@ -14,6 +14,7 @@ function getKeyByValue(map, searchValue) {
   }
   return null; // Return null if the value isn't found
 }
+connectedUsers.set("test", "test");
 
 function userLogout(ws) {
 
@@ -52,19 +53,23 @@ wss.on('connection', function connection(ws) {
       var sendingClient = msg.user;
       if (msg.type == "login") {
           console.log("Login request received");
-          ws.send(JSON.stringify({type: "login", success: true, connectedUsers: Array.from(connectedUsers.keys())}));
-          connectedUsers.set(sendingClient, ws);
-          wss.clients.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN && client != ws)  { 
-              var usersToSend = Array.from(connectedUsers.keys());
-              var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
-              if (index > -1) {
-                usersToSend.splice(index, 1);
-              }
-              client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
-            }
-          });
-        
+          if (connectedUsers.has(sendingClient)) {
+            console.log("Username already taken");
+            ws.send(JSON.stringify({type: "login", success: false, connectedUsers: Array.from(connectedUsers.keys())}));
+          } else {
+              ws.send(JSON.stringify({type: "login", success: true, connectedUsers: Array.from(connectedUsers.keys())}));
+              connectedUsers.set(sendingClient, ws);
+              wss.clients.forEach(function each(client) {
+                if (client.readyState === WebSocket.OPEN && client != ws)  { 
+                  var usersToSend = Array.from(connectedUsers.keys());
+                  var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
+                  if (index > -1) {
+                    usersToSend.splice(index, 1);
+                  }
+                  client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
+                }
+              });
+          }
       } else if (msg.type == "logout") {
         userLogout(ws);
       } else if (msg.type == "requestToPlay") {

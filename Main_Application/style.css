@@ -127,13 +127,6 @@ QDialogButtonBox {
     margin-top: 20px; /* Space above the button box */
 }
 
-/* Standard Buttons in Button Box */
-QDialogButtonBox QPushButton {
-    /* Inherits the styles from QDialog QPushButton */
-    width: 80px; /* Fixed width for uniformity */
-    height: 30px; /* Fixed height for uniformity */
-}
-
 
 /* Ensures that GroupBox titles are not cut off */
 QGroupBox::title {

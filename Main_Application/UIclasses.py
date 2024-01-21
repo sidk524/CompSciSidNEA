@@ -2734,12 +2734,18 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         """
         try:
             message_data = json.loads(message)
-
             # Handle login message
             if message_data["type"] == "login":
                 if message_data["success"]:
                     self.getAvailablePlayers(message_data["connectedUsers"])
-
+                else:
+                    # If the username is taken, show an error dialog and go send back to Main menu
+                    self.__BackWindow = Ui_MainMenu(self.__desktopWidth, self.__desktopHeight)
+                    self.__BackWindow.show()
+                    self.hide()
+                    self.__errorDialog = Ui_Dialog("Username Taken! Try another name.", self.__desktopWidth, self.__desktopHeight)
+                    self.__errorDialog.show()
+                
             # Handle logout message
             elif message_data["type"] == "logout":
                 if message_data["success"]:
@@ -2758,6 +2764,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "playRequest":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.__desktopWidth, self.__desktopHeight)
                 self.requestToPlayDialog.show()
+
+                self.hideUserButton(message_data["user"])
 
                 self.check_accept_game_timer = QtCore.QTimer()
                 self.check_accept_game_timer.timeout.connect(lambda: self.checkAcceptGame(message_data))
@@ -2936,6 +2944,15 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             playerButton.setFont(self.__playerButtonFont)
             self.__playerButtonDict[player] = playerButton
             self.__playersGroupBox.layout().addWidget(playerButton)
+
+    def hideUserButton(self, user):
+        """
+        Hides the button of the specified user.
+
+        Args:
+            user: The user whose button will be hidden.
+        """
+        self.__playerButtonDict[user].hide()
 
 
     def getOpponentName(self):
