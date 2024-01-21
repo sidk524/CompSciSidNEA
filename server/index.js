@@ -124,7 +124,16 @@ wss.on('connection', function connection(ws) {
             });
           }
 
-      }
+      } wss.clients.forEach(function each(client) {
+        if (client.readyState === WebSocket.OPEN && client != ws)  { 
+          var usersToSend = Array.from(connectedUsers.keys());
+          var index = usersToSend.indexOf(getKeyByValue(connectedUsers, client));
+          if (index > -1) {
+            usersToSend.splice(index, 1);
+          }
+          client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
+        }
+      });
 
   });
   

@@ -1,0 +1,144 @@
+
+
+/* Main window background */
+QMainWindow {
+    background-color: #2E2957; /* A slightly lighter purple for better contrast */
+}
+
+QLabel {
+    color: #ECE9F1; /* A very light purple or off-white for the title */
+    font-family: "Segoe UI", sans-serif; /* A more modern font family */
+    font-weight: bold;
+}
+
+
+/* Buttons */
+QPushButton {
+    background-color: #3B3790; /* A complementary purple */
+    color: white;
+    font-family: "Segoe UI", sans-serif;
+    font-weight: bold;
+    border: none;
+    border-radius: 15px; /* Rounded corners */
+    padding: 15px 30px;
+    margin: 10px 0; /* Space between buttons */
+}
+
+
+QPushButton:hover {
+    background-color: #39a0ca; /* Bluewater lowlight for hover */
+    color: black; /* Black text for contrast */
+}
+
+QPushButton:pressed {
+    background-color: #171999; /* Purple baseline for pressed state */
+}
+
+/* Radio buttons */
+QRadioButton {
+    color: #f0f0f0; /* Purple baseline */
+
+}
+
+/* Menu Bar */
+QMenuBar {
+    background-color: #161748; /* Purple baseline */
+    color: white;
+}
+
+QMenuBar::item:selected {
+    background-color: #478559; /* Green Treeline for selected item */
+}
+
+/* Menu */
+QMenu {
+    background-color: #f0f0f0;
+    color: #171999; /* Purple baseline */
+    
+}
+
+QMenu::item:selected {
+    background-color: #478559; /* Green Treeline for selected item */
+}
+
+/* Group Box */
+QGroupBox {
+    border: 2px solid rgb(12, 13, 46); /* Bluewater lowlight for border */
+    border-radius: 5px;
+    margin-top: 1em;
+    color: #f0f0f0; /* Off-white for text */
+    font-weight: bold;
+}
+
+/* Sliders */
+QSlider::groove:horizontal {
+    border: 2px solid rgb(12, 13, 46); /* Bluewater lowlight for border */
+    height: 8px;
+    background: #171999; /* Purple baseline */
+    margin: 2px 0;
+}
+
+QSlider::handle:horizontal {
+    background: #f0f0f0;
+    border: 2px solid rgb(12, 13, 46); /* Bluewater lowlight for border */
+    width: 18px;
+    margin: -2px 0; /* handle is placed by default on the contents rect of the groove. Expand outside the groove */
+    border-radius: 3px;
+}
+
+/* Dialog Window */
+QDialog {
+    background-color: #2E2957; /* Same slightly lighter purple for consistency */
+}
+
+/* Dialog Labels */
+QDialog QLabel {
+    color: #ECE9F1; /* Same very light purple or off-white for the text */
+    font-family: "Segoe UI", sans-serif;
+    font-weight: bold;
+    font-size: 14px; /* Adjust font size as needed */
+}
+
+/* Dialog Buttons */
+QDialog QPushButton {
+    background-color: #3B3790; /* Same complementary purple */
+    color: white;
+    font-family: "Segoe UI", sans-serif;
+    font-weight: bold;
+    border: none;
+    border-radius: 15px;
+    padding: 10px 20px; /* Adjust padding as needed */
+    margin: 5px; /* Adjust margin as needed */
+}
+
+QDialog QPushButton:hover {
+    background-color: #39a0ca; /* Bluewater lowlight for hover */
+    color: #161748; /* Purple baseline for hover text */
+}
+
+QDialog QPushButton:pressed {
+    background-color: #171999; /* Purple baseline for pressed state */
+    color: white; /* White text for contrast */
+}
+
+/* Button Box */
+QDialogButtonBox {
+    border: none; /* No border for the button box */
+    padding: 10px; /* Space around the buttons */
+    margin-top: 20px; /* Space above the button box */
+}
+
+/* Standard Buttons in Button Box */
+QDialogButtonBox QPushButton {
+    /* Inherits the styles from QDialog QPushButton */
+    font-size: 12px; /* Slightly smaller font size for dialog box buttons */
+    width: 80px; /* Fixed width for uniformity */
+    height: 30px; /* Fixed height for uniformity */
+}
+
+
+/* Ensures that GroupBox titles are not cut off */
+QGroupBox::title {
+    subcontrol-origin: margin;
+    padding: 0 3px;
+}

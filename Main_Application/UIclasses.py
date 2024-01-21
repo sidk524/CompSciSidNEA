@@ -720,6 +720,8 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.opponentWon = False
         self.setWindowTitle("CompSci Maze Master")
         self.setupUi()
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
         self.startPygameLoop()
         self.show()
 
@@ -751,7 +753,6 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.actionAbout.triggered.connect(self.about_action_triggered)
         self.actionExit.triggered.connect(self.exit_action_triggered)
 
-    
         # Main Layout
         mainLayout = QtWidgets.QGridLayout(self.centralwidget)
 
@@ -799,9 +800,6 @@ class Ui_MazeSolveWindow(QMainWindow):
         summaryLayout = QtWidgets.QVBoxLayout(self.summaryBox)
         summaryLayout.addWidget(self.timeTakenLabel)
         
-
-
-
         self.hide_distance_map_timer = QTimer(self)
         self.hide_distance_map_timer.timeout.connect(lambda: self.getDistanceMapStatus())
         self.hide_distance_map_timer.start(500)
@@ -840,7 +838,6 @@ class Ui_MazeSolveWindow(QMainWindow):
 
             actionLayout.addWidget(self.showHintButton)
 
-
         self.resizeEvent = self.onResize
 
     def onResize(self, event):
@@ -852,8 +849,11 @@ class Ui_MazeSolveWindow(QMainWindow):
         
         self.actionsBox.setFont(font)
         self.summaryBox.setFont(font)
+        if self.solveAlgorithm != "manual":
+            self.States.setFont(font)
+            self.pseudocodeBox.setFont(font)
 
-        font.setPointSize(base_font_size * 0.6)  # Adjust for smaller font
+        font.setPointSize(base_font_size * 0.8)  # Adjust for smaller font
         font.setUnderline(False)
         
         self.showDistanceMapButton.setFont(font)
@@ -863,13 +863,11 @@ class Ui_MazeSolveWindow(QMainWindow):
        
         if self.solveAlgorithm != "manual":
 
-            self.pseudocodeBox.setFont(font)
-            self.States.setFont(font)
             self.showHintButton.setFont(font)
             self.incorrectMovesLabel.setFont(font)
             self.hintsUsedLabel.setFont(font)
             self.pseudocodeLabel.setFont(font)
-
+            self.programStateLabel.setFont(font)
 
         super(Ui_MazeSolveWindow, self).resizeEvent(event)
 
@@ -1062,6 +1060,8 @@ class Ui_DialogMazeSolved(QMainWindow):
         self.__online = online
         self.setWindowTitle("Summary: Maze Solved")
         self.setupUi()
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
         self.show()
 
     def setupUi(self):
@@ -1248,8 +1248,9 @@ class Ui_MainMenu(QMainWindow):
         self.desktopHeight = desktopHeight
         self.setWindowTitle("Main Menu: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
-        with open("Main_Application/mainMenu.css", "r") as f:
+        with open("Main_Application/style.css", "r") as f:
             self.setStyleSheet(f.read())
+
     def setupUi(self, desktopWidth, desktopHeight):
         self.resize(desktopWidth*0.6, desktopHeight*0.6)
         self.setObjectName("MainMenu")
@@ -1263,8 +1264,11 @@ class Ui_MainMenu(QMainWindow):
         self.TitleLabel = QtWidgets.QLabel("CompSci Maze Master", self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(20)
+        font.setUnderline(True)
         self.TitleLabel.setFont(font)
         self.TitleLabel.setAlignment(QtCore.Qt.AlignCenter)  # Center alignment
+        
+
         layout.addWidget(self.TitleLabel)  # Add to layout
 
         # StartButton
@@ -1352,13 +1356,14 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.online = online
         self.setWindowTitle("Generate New Maze: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
-
+        with open("Main_Application/style.css", "r") as f:
+                    self.setStyleSheet(f.read())
+                
     def setupUi(self, desktopWidth, desktopHeight):
-        self.resize(desktopWidth*0.6, desktopHeight*0.6)
+        self.resize(desktopWidth * 0.6, desktopHeight * 0.6)
         self.setObjectName("GenerateMazeMenu")
         self.centralwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralwidget)
-        
         self.BackButton = QtWidgets.QPushButton("Back", self)
         self.BackButton.setGeometry(20, 60, 100, 40)  # Adjust size and position as needed
         self.BackButton.setObjectName("BackButon")
@@ -1373,28 +1378,20 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.TitleGenerateMaze.setAlignment(QtCore.Qt.AlignCenter)
         layout.addWidget(self.TitleGenerateMaze)
 
-        # MazeSettingsContainer
-        self.MazeSettingsContainer = QtWidgets.QGroupBox("Maze Settings", self.centralwidget)
-        self.MazeSettingsContainer.setAlignment(QtCore.Qt.AlignCenter)
-        layout.addWidget(self.MazeSettingsContainer)
-
-        # GroupBox layout
-        groupBoxLayout = QtWidgets.QVBoxLayout(self.MazeSettingsContainer)
-
         # GenAlgorithmContainer with horizontal layout
-        self.GenAlgorithmContainer = QtWidgets.QGroupBox("Generation Algorithm", self.MazeSettingsContainer)
-        genAlgorithmLayout = QtWidgets.QHBoxLayout()  # Horizontal layout
-        genAlgorithmLayout.addStretch(1)  # Add stretchable space on the left
+        self.GenAlgorithmContainer = QtWidgets.QGroupBox("Generation Algorithm", self.centralwidget)
+        genAlgorithmLayout = QtWidgets.QHBoxLayout()
+        genAlgorithmLayout.addStretch(1)
         self.SidewinderRadioButton = QtWidgets.QRadioButton("Sidewinder", self.GenAlgorithmContainer)
         genAlgorithmLayout.addWidget(self.SidewinderRadioButton)
         self.BinaryTreeRadioButton = QtWidgets.QRadioButton("Binary Tree", self.GenAlgorithmContainer)
         genAlgorithmLayout.addWidget(self.BinaryTreeRadioButton)
-        genAlgorithmLayout.addStretch(1)  # Add stretchable space on the right
+        genAlgorithmLayout.addStretch(1)
         self.GenAlgorithmContainer.setLayout(genAlgorithmLayout)
-        groupBoxLayout.addWidget(self.GenAlgorithmContainer)
+        layout.addWidget(self.GenAlgorithmContainer)
 
         # SolveAlgorithmContainer with horizontal layout
-        self.SolveAlgorithmContainer = QtWidgets.QGroupBox("Solving Algorithm", self.MazeSettingsContainer)
+        self.SolveAlgorithmContainer = QtWidgets.QGroupBox("Solving Algorithm", self.centralwidget)
         solveAlgorithmLayout = QtWidgets.QHBoxLayout()
         solveAlgorithmLayout.addStretch(1)
         self.DFSRadioButton = QtWidgets.QRadioButton("Depth First Search", self.SolveAlgorithmContainer)
@@ -1405,10 +1402,10 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         solveAlgorithmLayout.addWidget(self.ManualRadioButton)
         solveAlgorithmLayout.addStretch(1)
         self.SolveAlgorithmContainer.setLayout(solveAlgorithmLayout)
-        groupBoxLayout.addWidget(self.SolveAlgorithmContainer)
+        layout.addWidget(self.SolveAlgorithmContainer)
 
         # MazeTypeContainer with horizontal layout
-        self.MazeTypeContainer = QtWidgets.QGroupBox("Maze Type", self.MazeSettingsContainer)
+        self.MazeTypeContainer = QtWidgets.QGroupBox("Maze Type", self.centralwidget)
         mazeTypeLayout = QtWidgets.QHBoxLayout()
         mazeTypeLayout.addStretch(1)
         self.SquareRadioButton = QtWidgets.QRadioButton("Square", self.MazeTypeContainer)
@@ -1419,31 +1416,35 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         mazeTypeLayout.addWidget(self.TriangularRadioButton)
         mazeTypeLayout.addStretch(1)
         self.MazeTypeContainer.setLayout(mazeTypeLayout)
-        groupBoxLayout.addWidget(self.MazeTypeContainer)
+        layout.addWidget(self.MazeTypeContainer)
 
-        # MazeSizeSliderX and MazeSizeText
-        self.MazeSizeSliderX = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
+        self.widthLayout = QtWidgets.QVBoxLayout()  # Vertical layout for the width slider and label
+        self.MazeSizeSliderX = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.centralwidget)
         self.MazeSizeSliderX.setMinimum(5)
         self.MazeSizeSliderX.setMaximum(100)
-        groupBoxLayout.addWidget(self.MazeSizeSliderX)
-        self.MazeSizeTextX = QtWidgets.QLabel("Maze Width: 5", self.MazeSettingsContainer)
-        groupBoxLayout.addWidget(self.MazeSizeTextX)
+        self.MazeSizeTextX = QtWidgets.QLabel("Maze Width: 5", self.centralwidget)
+        self.widthLayout.addWidget(self.MazeSizeTextX)
 
-        self.MazeSizeSliderY = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.MazeSettingsContainer)
+        self.widthLayout.addWidget(self.MazeSizeSliderX)
+        layout.addLayout(self.widthLayout)  # Add width layout to the main layout
+
+        # Maze Height Slider and Label
+        self.heightLayout = QtWidgets.QVBoxLayout()  # Vertical layout for the height slider and label
+        self.MazeSizeSliderY = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.centralwidget)
         self.MazeSizeSliderY.setMinimum(5)
         self.MazeSizeSliderY.setMaximum(100)
-        groupBoxLayout.addWidget(self.MazeSizeSliderY)
-        self.MazeSizeTextY = QtWidgets.QLabel("Maze Height: 5", self.MazeSettingsContainer)
-        groupBoxLayout.addWidget(self.MazeSizeTextY)
-        
+        self.MazeSizeTextY = QtWidgets.QLabel("Maze Height: 5", self.centralwidget)
+        self.heightLayout.addWidget(self.MazeSizeTextY)
+
+        self.heightLayout.addWidget(self.MazeSizeSliderY)
+        layout.addLayout(self.heightLayout)  # Add height layout to the main layout
 
         # GenerateMazeButton
         self.GenerateMazeButton = QtWidgets.QPushButton("Generate", self.centralwidget)
         self.GenerateMazeButton.setObjectName("GenerateMazeButton")
         layout.addWidget(self.GenerateMazeButton, 0, QtCore.Qt.AlignCenter)
 
-        # Menu and status bar setup
-
+        self.centralwidget.setLayout(layout)
         self.menubar = QtWidgets.QMenuBar(self)
         self.setMenuBar(self.menubar)
 
@@ -1464,10 +1465,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.actionAbout.triggered.connect(self.about_action_triggered)
         self.actionExit.triggered.connect(self.exit_action_triggered)
 
-        
-        # Set layout to central widget
-        self.centralwidget.setLayout(layout)
-
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
         if self.online:
@@ -1480,7 +1477,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         _translate = QtCore.QCoreApplication.translate
         self.TitleGenerateMaze.setText(_translate("GenerateMazeMenu", "Generate New Maze"))
         self.GenerateMazeButton.setText(_translate("GenerateMazeMenu", "Generate"))
-        self.MazeSettingsContainer.setTitle(_translate("GenerateMazeMenu", "Maze Settings"))
         self.GenAlgorithmContainer.setTitle(_translate("GenerateMazeMenu", "Generation Algorithm"))
         self.SidewinderRadioButton.setText(_translate("GenerateMazeMenu", "Sidewinder"))
         self.BinaryTreeRadioButton.setText(_translate("GenerateMazeMenu", "Binary Tree"))
@@ -1498,7 +1494,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.TriangularRadioButton.setText(_translate("GenerateMazeMenu", "Triangular"))
         self.menuHelp.setTitle(_translate("GenerateMazeMenu", "Help"))
         self.menuExit.setTitle(_translate("GenerateMazeMenu", "Exit"))
-
         self.MazeSizeSliderX.valueChanged.connect(self.MazeSizeSliderX_valueChanged)
         self.MazeSizeSliderY.valueChanged.connect(self.MazeSizeSliderY_valueChanged)
         self.GenerateMazeButton.clicked.connect(self.GenerateMazeButton_clicked)
@@ -1556,7 +1551,6 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
             self.error = Ui_Dialog("Please select all options!", self.desktopWidth, self.desktopHeight)
             self.error.show()
 
-
     def getMazeConfig(self):
         if self.mazeConfig != None:
             return self.mazeConfig
@@ -1571,7 +1565,8 @@ class Ui_Dialog(QDialog):
         self.desktopHeight = desktopHeight
         self.setWindowTitle("Popup")
         self.setupUi()
-
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
     def setupUi(self):
         self.setObjectName("Dialog")
         self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
@@ -1624,6 +1619,8 @@ class Ui_RequestToPlayDialog(QDialog):
         self.acceptGameState = None
         self.setWindowTitle("Popup")
         self.setupUi()
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
 
     def setupUi(self):
         self.setObjectName("Dialog")
@@ -1691,6 +1688,8 @@ class Ui_OpponentWonDialog(QDialog):
         self.continuePlayingState = None
         self.setWindowTitle("Popup")
         self.setupUi()
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
 
     def setupUi(self):
         self.setObjectName("Dialog")
@@ -1768,6 +1767,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
         self.setWindowTitle("Play over LAN: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
 
     def setupUi(self, desktopWidth, desktopHeight):
         self.resize(desktopWidth * 0.6, desktopHeight * 0.6)
@@ -1912,7 +1913,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                 self.opponentDisconnected = True
                 self.opponentDisconnectedDialog = Ui_Dialog("Opponent disconnected!", self.desktopWidth, self.desktopHeight)
                 self.opponentDisconnectedDialog.show()
-                
+
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
     
@@ -1999,40 +2000,64 @@ class Ui_Login(QtWidgets.QDialog):
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
         self.setupUi()
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
 
     def setupUi(self):
+        # self.setObjectName("Dialog")
+        # self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
+
+        # # Main layout
+        # mainLayout = QtWidgets.QVBoxLayout(self)
+
+        # # GroupBox for Login
+        # self.groupBox = QtWidgets.QGroupBox("Login")
+        # groupBoxLayout = QtWidgets.QVBoxLayout(self.groupBox)
+
+        # # Username layout
+        # self.groupBox_2 = QtWidgets.QGroupBox("Enter Username:")
+        # groupBox_2_layout = QtWidgets.QHBoxLayout(self.groupBox_2)
+        # self.lineEdit = QtWidgets.QLineEdit()
+        # groupBox_2_layout.addWidget(self.lineEdit)
+        # groupBoxLayout.addWidget(self.groupBox_2)
+
+        # # Button Box
+        # self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
+        # self.buttonBox.accepted.connect(self.login)  # type: ignore
+        # self.buttonBox.rejected.connect(self.backToMainMenu)  # type: ignore
+        # groupBoxLayout.addWidget(self.buttonBox)
+
+        # # Add group box to the main layout
+        # mainLayout.addWidget(self.groupBox)
+
+        # # Centering the layout
+        # mainLayout.setAlignment(QtCore.Qt.AlignCenter)
+
+        # self.setLayout(mainLayout)
+
+        # # Resize event
+        # self.resizeEvent = self.onResize
+
+        # self.retranslateUi()
+        # QtCore.QMetaObject.connectSlotsByName(self)
         self.setObjectName("Dialog")
         self.resize(self.desktopWidth * 0.2, self.desktopHeight * 0.2)
 
         # Main layout
         mainLayout = QtWidgets.QVBoxLayout(self)
 
-        # GroupBox for Login
-        self.groupBox = QtWidgets.QGroupBox("Login")
-        groupBoxLayout = QtWidgets.QVBoxLayout(self.groupBox)
-
         # Username layout
         self.groupBox_2 = QtWidgets.QGroupBox("Enter Username:")
         groupBox_2_layout = QtWidgets.QHBoxLayout(self.groupBox_2)
         self.lineEdit = QtWidgets.QLineEdit()
         groupBox_2_layout.addWidget(self.lineEdit)
-        groupBoxLayout.addWidget(self.groupBox_2)
-
-        # Password layout
-        self.groupBox_3 = QtWidgets.QGroupBox("Enter Password:")
-        groupBox_3_layout = QtWidgets.QHBoxLayout(self.groupBox_3)
-        self.lineEdit_2 = QtWidgets.QLineEdit()
-        groupBox_3_layout.addWidget(self.lineEdit_2)
-        groupBoxLayout.addWidget(self.groupBox_3)
+        mainLayout.addWidget(self.groupBox_2)
 
         # Button Box
         self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.accepted.connect(self.login)  # type: ignore
         self.buttonBox.rejected.connect(self.backToMainMenu)  # type: ignore
-        groupBoxLayout.addWidget(self.buttonBox)
-
-        # Add group box to the main layout
-        mainLayout.addWidget(self.groupBox)
+        mainLayout.addWidget(self.buttonBox)
 
         # Centering the layout
         mainLayout.setAlignment(QtCore.Qt.AlignCenter)
@@ -2045,22 +2070,18 @@ class Ui_Login(QtWidgets.QDialog):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
+
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("Dialog", "Login"))
-        self.groupBox.setTitle(_translate("Dialog", "Login"))
         self.groupBox_2.setTitle(_translate("Dialog", "Enter Username:"))
-        self.groupBox_3.setTitle(_translate("Dialog", "Enter Password:"))    
 
     def onResize(self, event):
         # Adjust font size based on window size
         fontSize = max(8, min(self.width(), self.height()) // 50)
         font = QtGui.QFont("Arial", fontSize)
-        self.groupBox.setFont(font)
         self.groupBox_2.setFont(font)
-        self.groupBox_3.setFont(font)
         self.lineEdit.setFont(font)
-        self.lineEdit_2.setFont(font)
     
     def login(self):
         self.username = self.lineEdit.text()
@@ -2087,6 +2108,8 @@ class Ui_HelpMenu(QMainWindow):
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
         self.setupUi()
+        with open("Main_Application/style.css", "r") as f:
+            self.setStyleSheet(f.read())
 
     def setupUi(self):
         self.setObjectName("HelpMenu")
