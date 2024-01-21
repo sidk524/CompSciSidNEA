@@ -96,7 +96,6 @@ QDialog QLabel {
     color: #ECE9F1; /* Same very light purple or off-white for the text */
     font-family: "Segoe UI", sans-serif;
     font-weight: bold;
-    font-size: 14px; /* Adjust font size as needed */
 }
 
 /* Dialog Buttons */
@@ -131,7 +130,6 @@ QDialogButtonBox {
 /* Standard Buttons in Button Box */
 QDialogButtonBox QPushButton {
     /* Inherits the styles from QDialog QPushButton */
-    font-size: 12px; /* Slightly smaller font size for dialog box buttons */
     width: 80px; /* Fixed width for uniformity */
     height: 30px; /* Fixed height for uniformity */
 }
