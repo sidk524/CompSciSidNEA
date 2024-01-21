@@ -1871,7 +1871,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "maze":
                 self.hide()
                 if not(self.mazeReceived):
-                    self.loadingDialog.close()
+                    self.loadingDialog.hide()
                     self.mazeReceived = True
                     print("Received maze")
                     message_data = message_data["maze"]
