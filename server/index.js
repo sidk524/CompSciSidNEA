@@ -43,6 +43,7 @@ wss.on('connection', function connection(ws) {
         } else {
           ws.send(JSON.stringify({type: "logout", success: false}));
         }
+        ws.close();
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws)  { 
             var usersToSend = Array.from(connectedUsers.keys());
@@ -52,7 +53,7 @@ wss.on('connection', function connection(ws) {
             }
             client.send(JSON.stringify({type: "newUser", connectedUsers: usersToSend}));
           }
-        });
+        }); 
       } else if (msg.type == "requestToPlay") {
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 

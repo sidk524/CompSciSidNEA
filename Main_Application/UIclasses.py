@@ -1826,7 +1826,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
     def websocket_disconnected(self):
         self.errorDialog = Ui_Dialog("Disconnected from server! Try restarting the server.", self.desktopWidth, self.desktopHeight)
         self.errorDialog.show()
-        self.connectToWebSocket()
+        #self.connectToWebSocket()
 
     def websocket_message(self, message):
         try:
@@ -1964,6 +1964,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
     def logout(self):
         self.sendWebSocketMessage({"type": "logout", "user": self.username})
+        self.websocket.close()
 
     def BackButton_clicked(self):
         self.logout()
