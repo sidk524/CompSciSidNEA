@@ -940,6 +940,10 @@ class Ui_MazeSolveWindow(QMainWindow):
             self.get_opponent_move_timer.timeout.connect(lambda: self.getOpponentMove())
             self.get_opponent_move_timer.start(304)
 
+            self.check_opponent_win_timer = QTimer(self)
+            self.check_opponent_win_timer.timeout.connect(lambda: self.checkOpponentWin())
+            self.check_opponent_win_timer.start(1000)
+
     def updateOpponent(self):
         self.currentCellID = self.UIinstance.getCurrentCell().getID()
         self.LANInstance.sendCurrentCell(self.currentCellID)
@@ -949,6 +953,9 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.opponentMove != None:
             self.UIinstance.updateOpponentMove(self.opponentMove)
 
+    def checkOpponentWin(self):
+        if self.LANInstance.checkOpponentWin():
+            self.opponentWon = True
 
     def updatePygame(self):
         if self.UIinstance.updatePygame():
@@ -965,7 +972,9 @@ class Ui_MazeSolveWindow(QMainWindow):
             if self.online:
                 self.update_opponent_timer.stop()
                 self.get_opponent_move_timer.stop()
-                self.LANInstance.sendWin()
+                self.check_opponent_win_timer.stop()
+                if not(self.opponentWon):
+                    self.LANInstance.sendWin()
                 
             self.hide()
             self.NextWindow = Ui_DialogMazeSolved(self.desktopWidth, self.desktopHeight, self.__summaryStats, self.UIinstance)
@@ -1208,7 +1217,8 @@ class Ui_MainMenu(QMainWindow):
         self.desktopHeight = desktopHeight
         self.setWindowTitle("Main Menu: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
-        
+        with open("Main_Application/mainMenu.css", "r") as f:
+            self.setStyleSheet(f.read())
     def setupUi(self, desktopWidth, desktopHeight):
         self.resize(desktopWidth*0.6, desktopHeight*0.6)
         self.setObjectName("MainMenu")
@@ -1722,6 +1732,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         self.password = password
         self.playerButtonDict = {}
         self.currentOpponentCellID = None
+        self.currentOpponent = None
+        self.opponentWon = False
         self.setWindowTitle("Play over LAN: CompSci Maze Master")
         self.setupUi(self.desktopWidth, self.desktopHeight)
 
@@ -1862,6 +1874,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             elif message_data["type"] == "win":
                 self.winDialog = Ui_OpponentWonDialog(f"{message_data['user']} won the game!", self.desktopWidth, self.desktopHeight)
                 self.winDialog.show()
+                self.opponentWon = True
                 while self.winDialog.getContinuePlayingState() == None:
                     QtWidgets.QApplication.processEvents()
                 if self.winDialog.getContinuePlayingState():
@@ -1881,6 +1894,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
     def getOpponentMove(self):
         return self.currentOpponentCellID
+
+    def checkOpponentWin(self):
+        return self.opponentWon
 
     def getAvailablePlayers(self, players):
         print(players)

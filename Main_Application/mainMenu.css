@@ -1,0 +1,31 @@
+QMainWindow {
+    background-color: #f0f0f0;  /* Light grey background */
+}
+QLabel {
+    color: #333333;  /* Dark text for readability */
+}
+QPushButton {
+    background-color: #4CAF50;  /* Green background */
+    color: white;  /* White text */
+    border-style: outset;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: #4CAF50;
+    padding: 6px;
+}
+QPushButton:hover {
+    background-color: #45a049;  /* Slightly darker green on hover */
+    cursor: pointer;
+}
+QPushButton:pressed {
+    background-color: #397d39;  /* Even darker green when pressed */
+    border-style: inset;
+}
+QMenuBar {
+    background-color: #333333;  /* Dark background for the menu */
+    color: white;  /* White text */
+}
+QMenu {
+    background-color: #f0f0f0;  /* Light grey background */
+    color: #333333;  /* Dark text */
+}

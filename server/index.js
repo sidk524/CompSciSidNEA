@@ -81,7 +81,6 @@ wss.on('connection', function connection(ws) {
       } else if (msg.type == "sendMove"){
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN && client != ws && client == connectedUsers.get(msg.opponent))  { 
-
             client.send(JSON.stringify({type: "move", move: msg.currentCell}));
           }
         });
