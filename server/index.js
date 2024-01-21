@@ -92,11 +92,45 @@ wss.on('connection', function connection(ws) {
             console.log("win sent");
           }
         });
-      }
+      } 
     } catch (e) {
       console.log(e);
       
     }
 
+  }) 
+    ws.on('pong', () => {
+      ws.isAlive = true;
   });
+
+  ws.on('close', () => {
+
+      let disconnectedUser = getKeyByValue(connectedUsers, ws);
+      console.log("disconnectedUser", disconnectedUser);
+      if (disconnectedUser) {
+          connectedUsers.delete(disconnectedUser);
+      }
+  });
+  
+
+  
 } );  
+
+const interval = setInterval(function ping() {
+  wss.clients.forEach(function each(ws) {
+      if (ws.isAlive === false) {
+          let disconnectedUser = getKeyByValue(connectedUsers, ws);
+          if (disconnectedUser) {
+              connectedUsers.delete(disconnectedUser);
+          }
+          return ws.terminate();
+      }
+
+      ws.isAlive = false;
+      ws.ping();
+  });
+}, 1000);
+
+wss.on('close', function close() {
+  clearInterval(interval);
+});

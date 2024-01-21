@@ -935,11 +935,11 @@ class Ui_MazeSolveWindow(QMainWindow):
         if self.online:
             self.update_opponent_timer = QTimer(self)
             self.update_opponent_timer.timeout.connect(lambda: self.updateOpponent())
-            self.update_opponent_timer.start(300)
+            self.update_opponent_timer.start(100)
             
             self.get_opponent_move_timer = QTimer(self)
             self.get_opponent_move_timer.timeout.connect(lambda: self.getOpponentMove())
-            self.get_opponent_move_timer.start(304)
+            self.get_opponent_move_timer.start(100)
 
             self.check_opponent_win_timer = QTimer(self)
             self.check_opponent_win_timer.timeout.connect(lambda: self.checkOpponentWin())
@@ -977,7 +977,7 @@ class Ui_MazeSolveWindow(QMainWindow):
                     self.LANInstance.sendWin()
                 
             self.hide()
-            self.NextWindow = Ui_DialogMazeSolved(self.desktopWidth, self.desktopHeight, self.__summaryStats, self.UIinstance)
+            self.NextWindow = Ui_DialogMazeSolved(self.desktopWidth, self.desktopHeight, self.__summaryStats, self.UIinstance, self.LANInstance, self.online)
             self.NextWindow.show()
 
             
@@ -1025,12 +1025,14 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.BackWindow.show()
 
 class Ui_DialogMazeSolved(QMainWindow):
-    def __init__(self, desktopWidth, desktopHeight, summaryStats, UIinstance):
+    def __init__(self, desktopWidth, desktopHeight, summaryStats, UIinstance, LANInstance=None, online=False):
         super(Ui_DialogMazeSolved, self).__init__()
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
         self.__summaryStats = summaryStats
         self.__UIinstance = UIinstance
+        self.__LANInstance = LANInstance
+        self.__online = online
         self.setWindowTitle("Summary: Maze Solved")
         self.setupUi()
         self.show()
@@ -1146,6 +1148,8 @@ class Ui_DialogMazeSolved(QMainWindow):
 
     def returnToMenu(self):
         self.__UIinstance.closeProgram()
+        if self.__online:
+            self.__LANInstance.logout()
         self.hide()
         self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
         self.BackWindow.show()
@@ -1256,7 +1260,6 @@ class Ui_MainMenu(QMainWindow):
         self.PlayOverLANButton.setFont(buttonFont)
         self.PlayOverLANButton.setMinimumSize(250, 100)
         layout.addWidget(self.PlayOverLANButton, 0, QtCore.Qt.AlignCenter)
-
 
         # Set layout to central widget
         self.centralwidget.setLayout(layout)
@@ -1814,7 +1817,6 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.errorDialog.show()
             elif message_data["type"] == "newUser":
                 self.getAvailablePlayers(message_data["connectedUsers"])
-
             elif message_data["type"] == "playRequest":
                 self.requestToPlayDialog = Ui_RequestToPlayDialog(f"{message_data['user']} wants to play with you!", self.desktopWidth, self.desktopHeight)
                 self.requestToPlayDialog.show()
@@ -1842,6 +1844,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.errorDialog.show()
             elif message_data["type"] == "maze":
                 self.hide()
+                print("Received maze")
                 message_data = message_data["maze"]
                 self.JSONgrid = dict(message_data['grid'])
                 self.mazeType = message_data['maze_type']
@@ -1883,9 +1886,9 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
                     self.hide()
                     self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
                     self.BackWindow.show()
+            elif message_data["type"] == "keepalive":
+                self.sendWebSocketMessage({"type": "keepalive", "user": self.username, "alive": True}) 
                     
-
-
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
     
@@ -1921,8 +1924,14 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
             self.playerButtonDict[player] = playerButton
             self.playersGroupBox.layout().addWidget(playerButton)
 
-    def BackButton_clicked(self):
+    def logout(self):
         self.sendWebSocketMessage({"type": "logout", "user": self.username})
+
+    def BackButton_clicked(self):
+        self.logout()
+        self.hide()
+        self.BackWindow = Ui_MainMenu(self.desktopWidth, self.desktopHeight)
+        self.BackWindow.show()
         
     def playerButtonClicked(self, player):
         self.currentOpponent = player
