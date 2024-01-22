@@ -14,10 +14,9 @@ function getKeyByValue(map, searchValue) {
   }
   return null; // Return null if the value isn't found
 }
-connectedUsers.set("test", "test");
+
 
 function userLogout(ws) {
-
   let disconnectedUser = getKeyByValue(connectedUsers, ws);
   console.log("disconnectedUser", disconnectedUser);
   if (disconnectedUser) {

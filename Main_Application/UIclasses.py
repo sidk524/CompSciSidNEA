@@ -1184,7 +1184,7 @@ class Ui_MazeSolveWindow(QMainWindow):
         self.__opponentWon = False
         self.setWindowTitle("CompSci Maze Master")
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
         self.startPygameLoop()
         self.show()
@@ -1685,7 +1685,7 @@ class Ui_DialogMazeSolved(QMainWindow):
         self.__online = online
         self.setWindowTitle("Summary: Maze Solved")
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
         self.show()
 
@@ -1941,7 +1941,7 @@ class Ui_MainMenu(QMainWindow):
         self.__desktopHeight = desktopHeight
         self.setWindowTitle("Main Menu: CompSci Maze Master")
         self.setupUi(self.__desktopWidth, self.__desktopHeight)
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self, desktopWidth, desktopHeight):
@@ -2086,7 +2086,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.__online = online
         self.setWindowTitle("Generate New Maze: CompSci Maze Master")
         self.setupUi(self.__desktopWidth, self.__desktopHeight)
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self, desktopWidth, desktopHeight):
@@ -2102,7 +2102,7 @@ class Ui_GenerateMazeMenu(QtWidgets.QMainWindow):
         self.__centralwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.__centralwidget)
         self.__BackButton = QtWidgets.QPushButton("Back", self)
-        self.__BackButton.setGeometry(20, 60, 100, 40)  # Adjust size and position as needed
+        self.__BackButton.setGeometry(20, 60, 100, 80)  # Adjust size and position as needed
         self.__BackButton.setObjectName("BackButon")
         # Create a vertical layout
         layout = QtWidgets.QVBoxLayout(self.__centralwidget)
@@ -2359,7 +2359,7 @@ class Ui_Dialog(QDialog):
         self.__desktopHeight = desktopHeight
         self.setWindowTitle("Popup")
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self):
@@ -2425,7 +2425,7 @@ class Ui_RequestToPlayDialog(QDialog):
         self.__acceptGameState = None
         self.setWindowTitle("Popup")
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self):
@@ -2519,7 +2519,7 @@ class Ui_OpponentWonDialog(QDialog):
         self.__continuePlayingState = None
         self.setWindowTitle("Popup")
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self):
@@ -2625,7 +2625,7 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
 
         self.setWindowTitle("Play over LAN: CompSci Maze Master")
         self.setupUi(self.__desktopWidth, self.__desktopHeight)
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self, desktopWidth, desktopHeight):
@@ -2681,7 +2681,8 @@ class Ui_LANAndWebSockets(QtWidgets.QMainWindow):
         """
         Connects to the WebSocket server.
         """
-        self.__websocket.open(QUrl("ws://192.168.68.102:8080"))
+        #self.__websocket.open(QUrl("ws://192.168.68.102:8080"))
+        self.__websocket.open(QUrl("ws://localhost:8080"))
 
     def websocket_error(self, error):
         """
@@ -3052,7 +3053,7 @@ class Ui_Login(QtWidgets.QDialog):
         self.__desktopWidth = desktopWidth
         self.__desktopHeight = desktopHeight
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self):
@@ -3159,7 +3160,7 @@ class Ui_HelpMenu(QMainWindow):
         self.__desktopWidth = desktopWidth
         self.__desktopHeight = desktopHeight
         self.setupUi()
-        with open("Main_Application/style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.setStyleSheet(f.read())
 
     def setupUi(self):

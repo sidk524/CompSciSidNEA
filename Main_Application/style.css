@@ -22,6 +22,11 @@ QPushButton {
     border-radius: 15px; /* Rounded corners */
     padding: 15px 30px;
     margin: 10px 0; /* Space between buttons */
+    /* adjust size to fit the text*/
+    min-width: 100px;
+    min-height: 50px;
+
+
 }
 
 
