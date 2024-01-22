@@ -45,6 +45,7 @@ function userLogout(ws) {
     }
   });
 }
+
 wss.on('connection', function connection(ws) {
   console.log("Connection established");
   ws.on('message', function incoming(message) {
